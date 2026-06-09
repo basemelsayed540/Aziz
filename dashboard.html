@@ -4982,14 +4982,14 @@
                     : `<button onclick="toggleUserApproval('${user.id}', true)" class="btn-action bg-success-subtle text-success" title="تفعيل الحساب"><i class="fas fa-user-check"></i></button>`)
                 : '';
             const isRepAccount = user.role === 'rep';
-            const gpsBadge = isRepAccount
-                ? (isRepGpsEnforced(user.id)
-                    ? '<span class="badge bg-danger-subtle text-danger" title="إجبار GPS مفعل لهذا المندوب"><i class="fas fa-location-crosshairs me-1"></i>GPS إجباري</span>'
-                    : '<span class="badge bg-secondary-subtle text-secondary" title="إجبار GPS غير مفعل لهذا المندوب"><i class="fas fa-location-dot me-1"></i>GPS اختياري</span>')
+            const trackingBadge = isRepAccount
+                ? (user.tracking_enabled
+                    ? '<span class="badge bg-success-subtle text-success" title="تتبع الموقع مفعل"><i class="fas fa-satellite-dish me-1"></i>تتبع</span>'
+                    : '<span class="badge bg-secondary-subtle text-secondary" title="تتبع الموقع غير مفعل"><i class="fas fa-satellite me-1"></i>تتبع</span>')
                 : '';
             const safeRepName = JSON.stringify(String(user.username || user.full_name || user.phone || 'المندوب'));
-            const gpsAction = isRepAccount
-                ? `<button onclick='toggleRepGpsEnforcement(${JSON.stringify(String(user.id))}, ${safeRepName})' class="btn-action ${isRepGpsEnforced(user.id) ? 'bg-danger-subtle text-danger' : 'bg-info-subtle text-info'}" title="${isRepGpsEnforced(user.id) ? 'إلغاء إجبار GPS' : 'تشغيل إجبار GPS'}"><i class="fas ${isRepGpsEnforced(user.id) ? 'fa-location-xmark' : 'fa-location-crosshairs'}"></i></button>`
+            const trackingAction = isRepAccount
+                ? `<button onclick='toggleRepTracking("${user.id}", ${safeRepName})' class="btn-action ${user.tracking_enabled ? 'bg-danger-subtle text-danger' : 'bg-info-subtle text-info'}" title="${user.tracking_enabled ? 'إيقاف التتبع' : 'تشغيل التتبع'}"><i class="fas ${user.tracking_enabled ? 'fa-satellite-dish' : 'fa-satellite'}"></i></button>`
                 : '';
 
             return `
@@ -4997,11 +4997,11 @@
                     <td><strong>${user.username || user.full_name || '---'}</strong></td>
                     <td>${user.phone || '---'}</td>
                     <td><span class="badge bg-light text-dark">${getUserRoleLabel(user.role)}</span></td>
-                    <td class="d-flex flex-wrap gap-1 align-items-center">${approvalBadge}${gpsBadge}</td>
+                    <td class="d-flex flex-wrap gap-1 align-items-center">${approvalBadge}${trackingBadge}</td>
                     <td class="text-center">
                         <div class="d-flex justify-content-center gap-2">
                             ${approvalAction}
-                            ${gpsAction}
+                            ${trackingAction}
                             <button onclick="changeUserRole('${user.id}', '${user.username || user.full_name || ''}', '${user.role}')" class="btn-action bg-warning-subtle text-warning" title="تغيير الصلاحية"><i class="fas fa-shield-halved"></i></button>
                             <button onclick="editUser(${JSON.stringify(user).replace(/"/g, '&quot;')})" class="btn-action bg-primary-subtle text-primary" title="تعديل"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteUser('${user.id}', '${user.username}')" class="btn-action bg-danger-subtle text-danger" title="حذف"><i class="fas fa-trash"></i></button>
@@ -5039,6 +5039,42 @@
                 });
             } catch (error) {
                 Swal.fire('خطأ', error.message || 'فشل في تحديث حالة الحساب', 'error');
+            }
+            showLoading(false);
+        }
+
+        async function toggleRepTracking(userId, repName) {
+            const user = allUsers.find(u => String(u.id) === String(userId));
+            if (!user) return;
+            const nextState = !user.tracking_enabled;
+            const actionLabel = nextState ? 'تشغيل' : 'إيقاف';
+
+            const confirmation = await Swal.fire({
+                title: `${actionLabel} تتبع الموقع`,
+                text: `${actionLabel === 'تشغيل' ? 'سيتم تتبع موقع' : 'سيتم إيقاف تتبع موقع'} "${repName}"`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: actionLabel,
+                cancelButtonText: 'إلغاء'
+            });
+            if (!confirmation.isConfirmed) return;
+
+            showLoading(true);
+            try {
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ tracking_enabled: nextState })
+                    .eq('id', userId);
+                if (error) throw error;
+                allUsers = allUsers.map(u =>
+                    String(u.id) === String(userId)
+                        ? { ...u, tracking_enabled: nextState }
+                        : u
+                );
+                renderUsers();
+                Swal.fire({ icon: 'success', title: `تم ${actionLabel} التتبع`, timer: 1500, showConfirmButton: false });
+            } catch (error) {
+                Swal.fire('خطأ', error.message || 'فشل في تحديث التتبع', 'error');
             }
             showLoading(false);
         }
