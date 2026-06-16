@@ -84,8 +84,8 @@
         .dark .shipment-row .customer-name { color: #818cf8; }
         .shipment-row .detail-address { color: #0f766e; font-weight: 600; }
         .dark .shipment-row .detail-address { color: #5eead4; }
-        .shipment-row .detail-amount { color: #059669; font-weight: 700; }
-        .dark .shipment-row .detail-amount { color: #34d399; }
+        .shipment-amount { font-weight: 800; color: #047857; }
+        .dark .shipment-amount { font-weight: 800; color: #34d399; }
         .archived-row { opacity: 0.5; }
         .dark .archived-row { opacity: 0.4; }
         .swal-dark .swal2-title { color: #f8fafc !important; }
@@ -789,7 +789,7 @@
                 <div class="mt-2 text-sm text-slate-500 space-y-1.5">
                     <div><i class="fas fa-box ml-1.5"></i><span class="field-label">المنتج:</span>${enNum(s['المنتج'] || '-')}</div>
                     <div><i class="fas fa-map-pin ml-1.5"></i><span class="field-label">العنوان:</span><span class="detail-address">${enNum(s['العنوان'] || '-')}</span></div>
-                    <div><i class="fas fa-layer-group ml-1.5"></i><span class="field-label">الزون:</span>${enNum(s['الزون'] || '-')} <span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span>${enNum(s['الراسل'] || '-')}</span> <span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="detail-amount">${(['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة']||'') && s['السعر بعد التعديل'] != null && s['السعر بعد التعديل'] !== '') ? enNum(s['السعر بعد التعديل']) : enNum(s['المبلغ'] || '0')} ج</span></span></div>
+                    <div><i class="fas fa-layer-group ml-1.5"></i><span class="field-label">الزون:</span>${enNum(s['الزون'] || '-')} <span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span>${enNum(s['الراسل'] || '-')}</span> <span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">${(['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة']||'') && s['السعر بعد التعديل'] != null && s['السعر بعد التعديل'] !== '') ? enNum(s['السعر بعد التعديل']) : enNum(s['المبلغ'] || '0')}</span></span></div>
                 </div>
                 ${finalHideActions ? '' : `
                 <div class="action-btns${actionsHidden ? ' hidden-actions' : ''}">

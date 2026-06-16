@@ -66,6 +66,8 @@
             margin-bottom: 20px;
         }
 
+        #section-users { width: 100%; }
+
         .stats-card-mini {
             background: var(--card-bg);
             border-radius: 18px;
@@ -2579,7 +2581,7 @@
         </div>
         
         <!-- Main Content -->
-        <div class="flex-grow-1 p-3 p-md-4 w-100" style="overflow-x: hidden;">
+        <div class="flex-grow-1 p-3 p-md-4" style="min-width: 0; overflow-x: hidden;">
             <div id="section-stats" style="display: none;">
                 <div class="order-card shadow-sm border-0" style="overflow:hidden;">
                     <div class="p-4">
@@ -2707,7 +2709,7 @@
 
             <div id="section-users" style="display: none;">
                 <!-- إدارة الحسابات -->
-                <div class="col-12">
+                <div>
                     <div class="order-card p-4 shadow-sm border-0">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold m-0 text-primary">
@@ -2733,6 +2735,7 @@
                                                     <th>الاسم</th>
                                                     <th>الرقم</th>
                                                     <th>النوع</th>
+                                                    <th>الحالة</th>
                                                     <th class="text-center">الإجراءات</th>
                                                 </tr>
                                             </thead>
@@ -2785,6 +2788,7 @@
                                                     <th>الاسم</th>
                                                     <th>الرقم</th>
                                                     <th>النوع</th>
+                                                    <th>الحالة</th>
                                                     <th class="text-center">الإجراءات</th>
                                                 </tr>
                                             </thead>
@@ -2811,6 +2815,7 @@
                                                     <th>الاسم</th>
                                                     <th>الرقم</th>
                                                     <th>النوع</th>
+                                                    <th>الحالة</th>
                                                     <th class="text-center">الإجراءات</th>
                                                 </tr>
                                             </thead>
@@ -4947,22 +4952,6 @@
             });
         }
 
-        function renderUsers() {
-            document.getElementById('usersTable').innerHTML = allUsers.map(u => `
-                    <tr>
-                    <td><strong>${u.username || u.full_name || '---'}</strong></td>
-                    <td>${u.phone}</td>
-                    <td><span class="badge bg-light text-dark">${u.role === 'rep' ? 'مندوب' : (u.role === 'sender' ? 'راسل' : (u.role === 'follower' ? 'متابعة' : (u.role === 'housing' ? 'تسكين الشحنات' : 'مدير')))}</span></td>
-                    <td class="text-center">
-                        <div class="d-flex justify-content-center gap-2">
-                            <button onclick="editUser(${JSON.stringify(u).replace(/"/g, '&quot;')})" class="btn-action bg-primary-subtle text-primary"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteUser('${u.id}', '${u.username}')" class="btn-action bg-danger-subtle text-danger"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-                    `).join('');
-        }
-
         function getUserRoleLabel(role) {
             if (role === 'rep') return 'مندوب';
             if (role === 'sender') return 'راسل';
@@ -5051,7 +5040,7 @@
             count.innerText = users.length;
             table.innerHTML = users.length
                 ? users.map(getUsersTableRow).join('')
-                : `<tr><td colspan="4" class="text-center py-4 text-secondary fw-bold">${emptyMessage}</td></tr>`;
+                : `<tr><td colspan="5" class="text-center py-4 text-secondary fw-bold">${emptyMessage}</td></tr>`;
         }
 
         function renderUsers() {
