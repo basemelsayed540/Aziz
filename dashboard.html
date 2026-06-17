@@ -2670,11 +2670,7 @@
 
                 <div class="stats-collapsible-body">
                         <div class="rep-leaderboards-grid">
-                            <div class="col-12 p-0">
-                                <div class="small text-secondary fw-bold px-1">
-                                    تم نقل العرض المختصر للأعلى، وهذا القسم مخصص للتفاصيل الكاملة والفرز.
-                                </div>
-                            </div>
+
                         </div>
                         <div class="row g-4 mt-1">
                     <!-- أداء المناديب -->
@@ -8230,6 +8226,11 @@
             });
         }
 
+        function shouldClearResolvedFieldsOnPending(previousStatus, newStatus) {
+            const resolvedStatuses = ['تم', 'تعديل سعر', 'شحن', 'إلغاء', 'الغاء', 'رفض', 'مؤجل'];
+            return newStatus === 'قيد التوصيل' && resolvedStatuses.includes(previousStatus);
+        }
+
         function housingOnStatusChange(id) {
             // منع تعديل الشحنات المؤرشفة لغير المدير
             if (currentUser.role !== 'admin') {
@@ -8291,10 +8292,8 @@
                 }
             }
 
-            const clearSourceStatuses = ['تم', 'تعديل سعر', 'شحن'];
-            const clearTargetStatuses = ['قيد التوصيل', 'إلغاء', 'مؤجل', ''];
-
-            if (clearSourceStatuses.includes(prevStatus) && clearTargetStatuses.includes(newStatus)) {
+            if (shouldClearResolvedFieldsOnPending(prevStatus, newStatus) ||
+                (['تم', 'تعديل سعر', 'شحن'].includes(prevStatus) && ['إلغاء', 'مؤجل', ''].includes(newStatus))) {
                 const reasonInput = document.getElementById(`housing-reason-${id}`);
                 const adjustedInput = document.getElementById(`housing-adjusted-${id}`);
                 if (reasonInput) reasonInput.value = '';
@@ -8356,9 +8355,8 @@
                     }
                 }
 
-                const clearSourceStatuses = ['تم', 'تعديل سعر', 'شحن'];
-                const clearTargetStatuses = ['قيد التوصيل', 'إلغاء', 'مؤجل', ''];
-                if (clearSourceStatuses.includes(currentStatus) && clearTargetStatuses.includes(status)) {
+                if (shouldClearResolvedFieldsOnPending(currentStatus, status) ||
+                    (['تم', 'تعديل سعر', 'شحن'].includes(currentStatus) && ['إلغاء', 'مؤجل', ''].includes(status))) {
                     const reasonInput = document.getElementById(`housing-reason-${id}`);
                     const adjustedInput = document.getElementById(`housing-adjusted-${id}`);
                     if (reasonInput) reasonInput.value = '';
@@ -9082,7 +9080,14 @@
             // --- Undo Snapshot ---
             const snapshots = selectedIds.map(id => {
                 const s = allShipments.find(sh => getShipmentDatabaseId(sh) === String(id));
-                return { id, fields: { الحالة: s ? (s.الحالة ?? null) : null } };
+                return {
+                    id,
+                    fields: {
+                        الحالة: s ? (s.الحالة ?? null) : null,
+                        'السعر بعد التعديل': s ? (s['السعر بعد التعديل'] ?? null) : null,
+                        'سبب الحالة': s ? (s['سبب الحالة'] ?? null) : null
+                    }
+                };
             });
             housingUndoStack.push({ label: `تغيير الحالة لـ قيد التوصيل لـ ${selectedIds.length} شحنة`, snapshots });
             updateHousingUndoButtonState();
@@ -9091,7 +9096,7 @@
             try {
                 const { error } = await supabaseClient
                     .from(CONFIG.TABLES.SHIPMENTS)
-                    .update({ الحالة: 'قيد التوصيل' })
+                    .update({ الحالة: 'قيد التوصيل', 'السعر بعد التعديل': null, 'سبب الحالة': null })
                     .in('id', selectedIds);
 
                 if (error) throw error;
@@ -9107,7 +9112,7 @@
                 // Update local data
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
-                        return { ...s, الحالة: 'قيد التوصيل' };
+                        return { ...s, الحالة: 'قيد التوصيل', 'السعر بعد التعديل': null, 'سبب الحالة': null };
                     }
                     return s;
                 });
@@ -10101,6 +10106,10 @@
                 const payload = {};
                 if (newStatus) payload.الحالة = newStatus;
                 if (newRep) payload.المندوب = newRep;
+                if (newStatus === 'قيد التوصيل') {
+                    payload['السعر بعد التعديل'] = null;
+                    payload['سبب الحالة'] = null;
+                }
                 const currentU = currentUser.full_name || currentUser.username || 'المدير';
                 const changedPayload = pickHousingChangedPayload(allShipments.find(s => String(s.id) === id) || {}, payload);
                 const finalPayload = toServerShipmentPayload({ ...changedPayload, ['اسم الموظف']: currentU });

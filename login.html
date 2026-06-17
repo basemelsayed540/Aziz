@@ -337,6 +337,7 @@
                 }).then(() => {
                     if (data.role === 'admin' || data.role === 'housing') window.location.href = 'dashboard.html';
                     else if (data.role === 'rep' || data.role === 'مندوب فرعي') window.location.href = 'rep-dashboard.html';
+                    else if (data.role === 'follower') window.location.href = 'monitor-dashboard.html';
                     else throw new Error('دور المستخدم غير معروف');
                 });
 
