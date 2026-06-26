@@ -428,7 +428,7 @@
             `,
             showCancelButton: true,
             confirmButtonText: 'حفظ',
-            cancelButtonText: 'إلغاء',
+            cancelButtonText: 'الغاء',
             confirmButtonColor: '#6366f1',
             customClass: {
                 popup: isDark ? 'swal-dark' : '',
@@ -517,7 +517,7 @@
             if (sr) senderCounts[sr] = (senderCounts[sr] || 0) + 1;
         });
         statusCounts['المفضلة'] = Object.keys(getFavorites()).length;
-        const followupStatuses = ['إلغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
+        const followupStatuses = ['الغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
         const dismissed = getFollowupsDismissed();
         statusCounts['بحاجة لمتابعة'] = base.filter(s => followupStatuses.includes(s['الحالة'] || '') && !dismissed[String(s.id)]).length;
 
@@ -556,7 +556,7 @@
             `<div data-type="${type}" data-value="" onclick="selectFilterChip(this)" class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm ${!current ? activeColors[ci] : chipColors[ci]}">الكل (${items.length})</div>`,
             ...items.map(v => `<div data-type="${type}" data-value="${v.replace(/"/g,'&quot;')}" onclick="selectFilterChip(this)" class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm ${current === v ? activeColors[ci] : chipColors[ci]}">${v}${type === 'daily' && archivedDailies.has(v) ? ' 📦' : ''} (${counts[v] || 0})</div>`),
         '</div>'].join('');
-        Swal.fire({ title, html: optsHtml, showCancelButton: true, cancelButtonText: 'إلغاء', showConfirmButton: false });
+        Swal.fire({ title, html: optsHtml, showCancelButton: true, cancelButtonText: 'الغاء', showConfirmButton: false });
     }
     window.selectFilterChip = function(el) {
         const type = el.dataset.type;
@@ -648,7 +648,7 @@
                 const fav = getFavorites();
                 if (!fav[sid]) return false;
             } else if (status === 'بحاجة لمتابعة') {
-                const followupStatuses = ['إلغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
+                const followupStatuses = ['الغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
                 if (!followupStatuses.includes(sStatus)) return false;
                 const dismissed = getFollowupsDismissed();
                 if (dismissed[sid]) return false;
@@ -689,7 +689,7 @@
     function updateStats() {
         const dailyShipments = getDailyShipments();
         document.getElementById('statShipments').textContent = enNum(dailyShipments.length);
-        const followupStatuses = ['إلغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
+        const followupStatuses = ['الغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
         const dismissed = getFollowupsDismissed();
         const followupCount = dailyShipments.filter(s => followupStatuses.includes(s['الحالة'] || '') && !dismissed[String(s.id)]).length;
         document.getElementById('statFollowup').textContent = enNum(followupCount);
@@ -710,10 +710,10 @@
             const sid = String(s.id);
             const isFav = isFavorite(sid);
             const isFollowupFilter = document.getElementById('filterStatus').value === 'بحاجة لمتابعة';
-            const followupStatuses = ['إلغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
+            const followupStatuses = ['الغاء', 'الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
             const needsFollowup = isFollowupFilter && followupStatuses.includes(s['الحالة'] || '');
             const followupSent = needsFollowup && !!getFollowupsSent()[sid];
-            const statusClass = ['تم','تعديل سعر','شحن'].includes(s['الحالة']||'') ? 'border-green' : s['الحالة'] === 'قيد التوصيل' ? 'border-yellow' : s['الحالة'] === 'مؤجل' ? 'border-orange' : (s['الحالة'] === 'إلغاء' || s['الحالة'] === 'الغاء') ? 'border-red' : '';
+            const statusClass = ['تم','تعديل سعر','شحن'].includes(s['الحالة']||'') ? 'border-green' : s['الحالة'] === 'قيد التوصيل' ? 'border-yellow' : s['الحالة'] === 'مؤجل' ? 'border-orange' : (s['الحالة'] === 'الغاء' || s['الحالة'] === 'الغاء') ? 'border-red' : '';
             const rowClass = isArchived ? (statusClass ? statusClass + ' archived-row' : 'archived-row') : statusClass;
             return `
             <div class="shipment-row ${rowClass}">
@@ -724,7 +724,7 @@
                     </div>
                     <div class="text-left">
                         <div class="main text-indigo-600 dark:text-indigo-400">${enNum(s['كود الشحنة'] || '-')}${isArchived ? ' <span class="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">📦 مؤرشفة</span>' : ''}</div>
-                        <div class="sub ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? 'text-green-500' : s['الحالة'] === 'قيد التوصيل' ? 'text-amber-500' : s['الحالة'] === 'مؤجل' ? 'text-orange-500' : (s['الحالة'] === 'إلغاء' || s['الحالة'] === 'الغاء') ? 'text-red-500' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? 'text-blue-500' : ''}" style="color: ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? '#22c55e' : s['الحالة'] === 'قيد التوصيل' ? '#f59e0b' : s['الحالة'] === 'مؤجل' ? '#f97316' : (s['الحالة'] === 'إلغاء' || s['الحالة'] === 'الغاء') ? '#ef4444' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? '#3b82f6' : ''} !important">${s['الحالة'] || '-'}</div>
+                        <div class="sub ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? 'text-green-500' : s['الحالة'] === 'قيد التوصيل' ? 'text-amber-500' : s['الحالة'] === 'مؤجل' ? 'text-orange-500' : (s['الحالة'] === 'الغاء' || s['الحالة'] === 'الغاء') ? 'text-red-500' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? 'text-blue-500' : ''}" style="color: ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? '#22c55e' : s['الحالة'] === 'قيد التوصيل' ? '#f59e0b' : s['الحالة'] === 'مؤجل' ? '#f97316' : (s['الحالة'] === 'الغاء' || s['الحالة'] === 'الغاء') ? '#ef4444' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? '#3b82f6' : ''} !important">${s['الحالة'] || '-'}</div>
                     </div>
                 </div>
                 <div class="mt-2 text-sm text-slate-500 space-y-1.5">
@@ -828,7 +828,7 @@
                     <i class="fas fa-phone ml-2"></i>${p}
                 </a>`).join('')}</div>`,
             showCancelButton: true,
-            cancelButtonText: 'إلغاء',
+            cancelButtonText: 'الغاء',
             showConfirmButton: false
         });
     }
@@ -868,7 +868,7 @@
                 </a>`;
             }).join('')}</div>`,
             showCancelButton: true,
-            cancelButtonText: 'إلغاء',
+            cancelButtonText: 'الغاء',
             showConfirmButton: false
         });
     }
