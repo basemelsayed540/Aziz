@@ -1556,7 +1556,7 @@
         }
 
         [data-bs-theme="dark"] .housing-table-scroll {
-            background: rgba(15, 23, 42, 0.45);
+            background: rgba(30, 45, 75, 0.5);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
         }
 
@@ -1607,7 +1607,7 @@
         }
 
         [data-bs-theme="dark"] .housing-table-filter-row {
-            background: rgba(15, 23, 42, 0.82) !important;
+            background: rgba(30, 45, 75, 0.85) !important;
         }
 
         /* —— تسكين الشحنات: بطاقات الإحصائيات المالية الاحترافية —— */
@@ -1759,7 +1759,7 @@
         }
 
         [data-bs-theme="dark"] .housing-table tbody tr {
-            background: rgba(30, 41, 59, 0.35);
+            background: #1a2744;
         }
 
         [data-bs-theme="dark"] .housing-table tbody td {
@@ -2743,11 +2743,7 @@
             <span class="navbar-brand d-flex align-items-center fw-bold text-primary">
                 <button class="btn btn-light d-md-none me-3 py-1 px-2 border" type="button" data-bs-toggle="offcanvas"
                     data-bs-target="#mobileSidebar"><i class="fas fa-bars"></i></button>
-                <div id="navHousingInfo" class="ms-3 ps-3 border-start d-flex align-items-center gap-2">
-                    <span class="badge bg-primary text-white rounded-pill px-3 py-1 fw-bold"
-                        style="font-size: 0.85rem;">تسكين الشحنات</span>
-                    <span id="housingNavUserName" class="small fw-bold text-secondary text-truncate" style="max-width: 150px;"></span>
-                </div>
+                <div id="navHousingInfo" class="ms-3 ps-3 border-start d-flex align-items-center gap-2"></div>
                 <div class="d-flex gap-2 me-3" id="navSectionTabs">
                     <button class="section-tab btn btn-sm rounded-pill fw-bold px-3 active-section-tab" data-section="housing" onclick="showAdminSection('housing')"><i class="fas fa-boxes-stacked me-1"></i> تسكين الشحنات</button>
                     <button class="section-tab btn btn-sm rounded-pill fw-bold px-3" data-section="stats" onclick="showAdminSection('stats')"><i class="fas fa-chart-line me-1"></i> احصائية المندوب</button>
@@ -3187,72 +3183,72 @@
                                     <th class="py-1 px-2" data-col-idx="1">
                                         <input id="housingNewRepNameHeader" type="text" list="dl-housingRep"
                                             class="form-control form-control-sm rounded-3"
-                                            placeholder="✍️ تعيين سريع"
+                                            placeholder="تعيين سريع"
                                             oninput="document.getElementById('housingNewRepName').value=this.value;updateHousingAssignButtons()">
                                     </th>
                                     <th class="py-1 px-2" data-col-idx="2">
                                         <input id="housingFilterRep" type="text"
-                                             class="form-control form-control-sm rounded-3" placeholder="🔍 المندوب">
+                                             class="form-control form-control-sm rounded-3" placeholder="المندوب">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="3">
                                              <input id="housingFilterM" type="text"
-                                                 class="form-control form-control-sm rounded-3 text-center" placeholder="🔍 m">
+                                                 class="form-control form-control-sm rounded-3 text-center" placeholder="m">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="4">
                                              <input id="housingFilterName" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 اسم العميل">
+                                                 class="form-control form-control-sm rounded-3" placeholder="اسم العميل">
+                                         </th>
+                                         <th class="py-1 px-2" data-col-idx="17">
+                                             <input id="housingFilterAddress" type="text"
+                                                 class="form-control form-control-sm rounded-3" placeholder="العنوان">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="5">
                                              <input id="housingFilterZone" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 الزون">
+                                                 class="form-control form-control-sm rounded-3" placeholder="الزون">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="6">
                                              <input id="housingFilterProduct" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 المنتج">
+                                                 class="form-control form-control-sm rounded-3" placeholder="المنتج">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="7">
                                              <input id="housingFilterPhone" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 الهاتف">
+                                                 class="form-control form-control-sm rounded-3" placeholder="الهاتف">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="8">
                                              <input id="housingFilterAltPhone" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 هاتف بديل">
+                                                 class="form-control form-control-sm rounded-3" placeholder="هاتف بديل">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="9">
                                              <input id="housingFilterAmount" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 المبلغ">
+                                                 class="form-control form-control-sm rounded-3" placeholder="المبلغ">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="10">
                                              <input id="housingFilterSender" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 الراسل">
+                                                 class="form-control form-control-sm rounded-3" placeholder="الراسل">
                                          </th>
                                          <th class="py-1 px-2" style="display: none;" data-col-idx="11">
                                              <input id="housingFilterCode" type="text"
                                                  class="form-control form-control-sm rounded-3 text-center"
-                                                 placeholder="🔍 الكود">
+                                                 placeholder="الكود">
                                          </th>
 
                                          <th class="py-1 px-2" data-col-idx="12">
                                              <input id="housingFilterStatus" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 الحالة">
+                                                 class="form-control form-control-sm rounded-3" placeholder="الحالة">
                                          </th>
                                          <th class="py-1 px-2" data-col-idx="13">
                                              <input id="housingFilterReason" type="text"
-                                                 class="form-control form-control-sm rounded-3" placeholder="🔍 السبب">
+                                                 class="form-control form-control-sm rounded-3" placeholder="السبب">
                                          </th>
                                     <th class="py-1 px-2" data-col-idx="14">
                                         <input id="housingFilterAdjusted" type="text"
-                                            class="form-control form-control-sm rounded-3" placeholder="🔍 السعر">
+                                            class="form-control form-control-sm rounded-3" placeholder="المدفوع">
                                     </th>
                                     <th class="py-1 px-2" data-col-idx="15">
                                         <input id="housingFilterEmployee" type="text"
-                                            class="form-control form-control-sm rounded-3" placeholder="🔍 الموظف">
+                                            class="form-control form-control-sm rounded-3" placeholder="الموظف">
                                     </th>
                                     <th class="py-1 px-2 text-center small fw-bold text-secondary" style="display: none;" data-col-idx="16">id</th>
-                                    <th class="py-1 px-2" data-col-idx="17">
-                                        <input id="housingFilterAddress" type="text"
-                                            class="form-control form-control-sm rounded-3" placeholder="🔍 العنوان">
-                                    </th>
                                     <th class="py-1 px-2 text-center small fw-bold text-secondary" style="display: none;" data-col-idx="18">ملاحظات</th>
                                     <th class="py-1 px-2 text-center small fw-bold text-secondary" style="display: none;" data-col-idx="19">تاريخ التحديث</th>
                                     <th class="py-1 px-2 text-center small fw-bold text-secondary" style="display: none;" data-col-idx="20">الصافي</th>
@@ -3594,7 +3590,7 @@
                                         <th>المبلغ</th>
                                         <th>المندوب</th>
                                         <th>الحالة</th>
-                                        <th>السعر بعد التعديل</th>
+                                        <th>المدفوع</th>
                                     </tr>
                                 </thead>
                                 <tbody id="bulkResultsBody"></tbody>
@@ -3611,13 +3607,13 @@
 
     <script src="assets/js/shipment-config.js"></script>
     <script>
-        const BUILD = '5'; if (!window.location.href.includes('_t=')) { localStorage.setItem('rep-version', BUILD); window.location.href = window.location.href.split('?')[0] + '?_t=' + BUILD; }
+        const BUILD = '12'; if (!window.location.href.includes('_t=')) { localStorage.setItem('rep-version', BUILD); window.location.href = window.location.href.split('?')[0] + '?_t=' + BUILD; }
 
         const { createClient } = supabase;
         
         const supabaseClient = getSharedSupabaseClient();
-        const SHIPMENT_PRICE_FIELD = 'السعر بعد التعديل';
-        const SHIPMENT_PRICE_FIELD_LEGACY = 'السعر_بعد_التعديل';
+        const SHIPMENT_PRICE_FIELD = 'المدفوع';
+        const SHIPMENT_PRICE_FIELD_LEGACY = 'المدفوع';
         const SHIPMENT_CODE_FIELD = 'كود الشحنة';
         const SHIPMENT_CODE_FIELD_LEGACY = 'order_id';
         const SHIPMENT_COMMISSION_FIELD = 'عمولة المندوب';
@@ -3651,8 +3647,6 @@
             redirectTo: 'login.html',
             onValidUser: (latestUser) => {
                 currentUser = latestUser;
-                const hName = document.getElementById('housingNavUserName');
-                if (hName) hName.innerText = `${latestUser.username || latestUser.full_name || 'المدير العام'}`;
             }
         });
 
@@ -3793,10 +3787,6 @@
         async function init() {
             showLoading(true);
             try {
-                if (currentUser) {
-                    const hName = document.getElementById('housingNavUserName');
-                    if (hName) hName.innerText = `${currentUser.username || currentUser.full_name || 'المدير العام'}`;
-                }
                 await Promise.all([fetchShipments(), fetchUsers()]);
                 await syncGpsEnforcementStateFromUsers();
                 applyRoleAccess();
@@ -4259,8 +4249,13 @@
             }
 
             const fillDatalist = (id, values) => {
-                const dl = document.getElementById(id);
-                if (dl) dl.innerHTML = values.map(v => `<option value="${escapeAttr(v)}"></option>`).join('');
+                let dl = document.getElementById(id);
+                if (!dl) {
+                    dl = document.createElement('datalist');
+                    dl.id = id;
+                    document.body.appendChild(dl);
+                }
+                dl.innerHTML = values.map(v => `<option value="${escapeAttr(v)}"></option>`).join('');
             };
 
             fillDatalist('dl-housingRep', cached.reps);
@@ -4586,7 +4581,8 @@
             Swal.fire({
                 title: 'الإحصائية العامة',
                 width: '1180px',
-                confirmButtonText: 'إغلاق',
+                showConfirmButton: false,
+                showCloseButton: true,
                 customClass: { popup: isDark ? 'swal-dark' : '' },
                 html: `
                     <div class="text-end">
@@ -5178,7 +5174,7 @@
                 const st = getAdminDisplayStatus(s);
                 if (isAdminDeliveredShipment(s)) {
                     repsData[name].delivered++;
-                    repsData[name].collected += parseFloat(s.السعر_بعد_التعديل || s.المبلغ || 0);
+                    repsData[name].collected += parseFloat(s.المدفوع || s.المبلغ || 0);
                 } else if (st === 'مؤجل') repsData[name].postponed++;
                 else if (st === 'رفض') repsData[name].rejected++;
                 else repsData[name].pending++;
@@ -5771,7 +5767,7 @@
 
         const EXACT_EXPORT_COLUMNS = [
             'm', 'اسم العميل', 'العنوان', 'الزون', 'المنتج', 'الهاتف', 'هاتف بديل', 'المبلغ',
-            'الراسل', 'كود الشحنة', 'المندوب', 'الحالة', 'سبب الحالة', 'السعر بعد التعديل',
+            'الراسل', 'كود الشحنة', 'المندوب', 'الحالة', 'سبب الحالة', 'المدفوع',
             'ملاحظات', 'تاريخ التحديث', 'الصافي', 'الشحن', 'عدد', 'تقفيل', 'عمولة المندوب',
             'اسم الموظف', 'نوع المندوب', 'حدث', 'اليومية'
         ];
@@ -5983,7 +5979,7 @@
                         { key: 'المندوب', labels: ['المندوب'] },
                         { key: 'الحالة', labels: ['الحالة'] },
                         { key: 'سبب الحالة', labels: ['سبب الحالة', 'سبب_الحالة'] },
-                        { key: 'السعر بعد التعديل', labels: ['السعر بعد التعديل', 'السعر_بعد_التعديل'] },
+                        { key: 'المدفوع', labels: ['المدفوع', 'المدفوع'] },
                         { key: 'ملاحظات', labels: ['ملاحظات'] },
                         { key: 'تاريخ التحديث', labels: ['تاريخ التحديث', 'تاريخ_التحديث', 'الابيديت'] },
                         { key: 'الصافي', labels: ['الصافي'] },
@@ -6041,7 +6037,7 @@
                     let generatedCount = 0;
                     const CODE_PREFIX = 'COD';
                     const CODE_TS = Date.now().toString(36).toUpperCase();
-                    const NUMERIC_FIELDS = new Set(['المبلغ', 'السعر بعد التعديل', 'الصافي', 'الشحن', 'تقفيل', 'عمولة المندوب']);
+                    const NUMERIC_FIELDS = new Set(['المبلغ', 'المدفوع', 'الصافي', 'الشحن', 'تقفيل', 'عمولة المندوب']);
                     const skipUnsupported = unsupportedShipmentSchemaFields.size > 0;
 
                     for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
@@ -7073,7 +7069,7 @@
         }
 
         function normalizeHousingComparableValue(key, value) {
-            if (['المبلغ', 'السعر_بعد_التعديل'].includes(key)) {
+            if (['المبلغ', 'المدفوع'].includes(key)) {
                 return String(value ?? '').trim();
             }
 
@@ -7100,7 +7096,7 @@
                 الزون: document.getElementById(`housing-zone-${id}`)?.value.trim() || '',
                 الراسل: document.getElementById(`housing-sender-${id}`)?.value.trim() || '',
                 المبلغ: document.getElementById(`housing-amount-${id}`)?.value ?? '',
-                السعر_بعد_التعديل: document.getElementById(`housing-adjusted-${id}`)?.value || null,
+                المدفوع: document.getElementById(`housing-adjusted-${id}`)?.value || null,
                 المندوب: document.getElementById(`housing-rep-${id}`)?.value || null,
                 الفرع: document.getElementById(`housing-branch-${id}`)?.value.trim() || '',
                 الحالة: document.getElementById(`housing-status-${id}`)?.value.trim() || '',
@@ -7109,7 +7105,7 @@
         }
 
         function getHousingChangedFields(baseShipment, payload) {
-            const fields = ['اسم_العميل', 'الهاتف', 'هاتف_بديل', 'الزون', 'الراسل', 'المبلغ', 'السعر_بعد_التعديل', 'المندوب', 'الفرع', 'الحالة', 'سبب الحالة'];
+            const fields = ['اسم_العميل', 'الهاتف', 'هاتف_بديل', 'الزون', 'الراسل', 'المبلغ', 'المدفوع', 'المندوب', 'الفرع', 'الحالة', 'سبب الحالة'];
             return fields.filter(key => normalizeHousingComparableValue(key, payload[key]) !== normalizeHousingComparableValue(key, baseShipment?.[key]));
         }
 
@@ -7290,7 +7286,7 @@
                 الزون: 'الزون',
                 الراسل: 'الراسل',
                 المبلغ: 'المبلغ',
-                السعر_بعد_التعديل: 'السعر بعد التعديل',
+                المدفوع: 'المدفوع',
                 المندوب: 'المندوب',
                 الفرع: 'الفرع',
                 الحالة: 'الحالة',
@@ -7372,7 +7368,7 @@
         function getAppliedHousingChangeEntries() {
             return allShipments.map(shipment => {
                 const original = originalShipments.get(String(shipment.id)) || {};
-                const priceChanged = normalizeHousingComparableValue('السعر_بعد_التعديل', shipment.السعر_بعد_التعديل) !== normalizeHousingComparableValue('السعر_بعد_التعديل', original.السعر_بعد_التعديل);
+                const priceChanged = normalizeHousingComparableValue('المدفوع', shipment.المدفوع) !== normalizeHousingComparableValue('المدفوع', original.المدفوع);
                 const phoneChanged = normalizeHousingComparableValue('الهاتف', shipment.الهاتف) !== normalizeHousingComparableValue('الهاتف', original.الهاتف);
                 const altPhoneChanged = normalizeHousingComparableValue('هاتف_بديل', shipment.هاتف_بديل) !== normalizeHousingComparableValue('هاتف_بديل', original.هاتف_بديل);
                 const statusChanged = normalizeHousingComparableValue('الحالة', shipment.الحالة) !== normalizeHousingComparableValue('الحالة', original.الحالة);
@@ -7390,7 +7386,7 @@
         function getAllHousingStatsEntries() {
             return allShipments.map(shipment => {
                 const original = originalShipments.get(String(shipment.id)) || {};
-                const priceChanged = normalizeHousingComparableValue('السعر_بعد_التعديل', shipment.السعر_بعد_التعديل) !== normalizeHousingComparableValue('السعر_بعد_التعديل', original.السعر_بعد_التعديل);
+                const priceChanged = normalizeHousingComparableValue('المدفوع', shipment.المدفوع) !== normalizeHousingComparableValue('المدفوع', original.المدفوع);
                 const phoneChanged = normalizeHousingComparableValue('الهاتف', shipment.الهاتف) !== normalizeHousingComparableValue('الهاتف', original.الهاتف);
                 const altPhoneChanged = normalizeHousingComparableValue('هاتف_بديل', shipment.هاتف_بديل) !== normalizeHousingComparableValue('هاتف_بديل', original.هاتف_بديل);
                 const statusChanged = normalizeHousingComparableValue('الحالة', shipment.الحالة) !== normalizeHousingComparableValue('الحالة', original.الحالة);
@@ -7601,16 +7597,16 @@
             const entries = getHousingDraftEntries();
             if (!entries.length) return;
 
-            // التحقق من صحة البيانات (إجبار السعر بعد التعديل عند اختيار تعديل سعر أو شحن)
+            // التحقق من صحة البيانات (إجبار المدفوع عند اختيار تعديل سعر أو شحن)
             for (const entry of entries) {
                 const status = entry.payload.الحالة;
-                const price = String(entry.payload.السعر_بعد_التعديل || '').trim();
+                const price = String(entry.payload.المدفوع || '').trim();
                 if ((status === 'تعديل سعر' || status === 'شحن') && (!price || price === '0')) {
                     const customerName = entry.payload.اسم_العميل || entry.shipment.اسم_العميل || '---';
                     Swal.fire({
                         icon: 'warning',
                         title: 'بيانات مفقودة',
-                        text: `يرجى إدخال السعر بعد التعديل للشحنة الخاصة بـ (${customerName}) لأنك اخترت حالة "${status}".`,
+                        text: `يرجى إدخال المدفوع للشحنة الخاصة بـ (${customerName}) لأنك اخترت حالة "${status}".`,
                         confirmButtonText: 'حسناً'
                     });
                     const inp = document.getElementById(`housing-adjusted-${entry.id}`);
@@ -7787,7 +7783,7 @@
                 else if (status === 'مجاش') mjashCount++;
                 else if (status === 'قيد التوصيل') inDeliveryCount++;
 
-                const price = parseFloat(String(d.السعر_بعد_التعديل || d.المبلغ || '0').replace(/[^0-9.-]+/g, '')) || 0;
+                const price = parseFloat(String(d.المدفوع || d.المبلغ || '0').replace(/[^0-9.-]+/g, '')) || 0;
                 if (status === 'تم') doneTotalPrice += price;
                 else if (status === 'تعديل سعر') amendedTotalPrice += price;
                 else if (status === 'شحن') shippingTotalPrice += price;
@@ -7902,10 +7898,10 @@
                                 <div class="housing-finance-card__value" dir="ltr">${showCounts ? shippingCostTotal.toLocaleString() : '0'}</div>
                             </div>
                         </div>
-                        <!-- التوريد -->
+                        <!-- المدفوع -->
                         <div data-stat-key="totalAmount" class="housing-finance-card housing-finance-card--cyan ${_vis('totalAmount')}" style="cursor:default;">
                             <div class="housing-finance-card__body">
-                                <div class="housing-finance-card__label">التوريد</div>
+                                <div class="housing-finance-card__label">المدفوع</div>
                                 <div class="housing-finance-card__value" dir="ltr">${showCounts ? totalAmount.toLocaleString() : '0'}</div>
                             </div>
                         </div>
@@ -7915,7 +7911,7 @@
                                 <div class="housing-finance-card__label">عمولة المندوب</div>
                                 <div class="housing-finance-card__value d-flex align-items-center justify-content-between" dir="ltr">
                                     <span>${showCounts ? totalCommission.toLocaleString() : '0'}</span>
-                                    <span class="fw-bold text-warning" style="font-size:0.75rem;">(${showCounts ? commissionCount : '0'})</span>
+                                    <span class="fw-bold text-success" style="font-size:0.75rem;">(${showCounts ? commissionCount : '0'})</span>
                                 </div>
                             </div>
                         </div>
@@ -7948,7 +7944,7 @@
             { key: 'grossAmount', label: 'إجمالي المبلغ' },
             { key: 'safi', label: 'الصافي' },
             { key: 'shippingCost', label: 'الشحن' },
-            { key: 'totalAmount', label: 'التوريد' },
+            { key: 'totalAmount', label: 'المدفوع' },
             { key: 'commission', label: 'عمولة المندوب' },
             { key: 'netAfterCommission', label: 'بعد خصم العمولة' }
         ];
@@ -8000,6 +7996,7 @@
                 confirmButtonText: 'حفظ',
                 showDenyButton: true,
                 denyButtonText: 'استعادة الافتراضي',
+                showCloseButton: true,
                 customClass: { popup: `rounded-4${isDark ? ' swal-dark' : ''}` }
             }).then(result => {
                 if (result.isDenied) {
@@ -8040,7 +8037,7 @@
 
                 if (status === 'تم' || status === 'تعديل سعر' || status === 'شحن') {
                     totalShipments += 1;
-                    totalRemittance += parseFinancialNumericValue(data.السعر_بعد_التعديل || data.المبلغ || 0);
+                    totalRemittance += parseFinancialNumericValue(data.المدفوع || data.المبلغ || 0);
                     totalCommission += parseFinancialNumericValue(
                         data[SHIPMENT_COMMISSION_FIELD] ?? data[SHIPMENT_COMMISSION_FIELD_LEGACY] ?? 0
                     );
@@ -8148,7 +8145,7 @@
                                     <th>#</th>
                                     <th>المندوب</th>
                                     <th>إجمالي الشحنات</th>
-                                    <th>إجمالي التوريد</th>
+                                    <th>إجمالي المدفوع</th>
                                     <th>عمولة المندوب</th>
                                     <th>بعد خصم العمولة</th>
                                 </tr>
@@ -8264,7 +8261,7 @@
                 const currentData = getHousingDisplayShipmentData(s);
                 const changedFields = getHousingChangedFields(s, currentData);
                 const phoneChanged = changedFields.includes('الهاتف');
-                const adjustedPriceChanged = changedFields.includes('السعر_بعد_التعديل');
+                const adjustedPriceChanged = changedFields.includes('المدفوع');
                 const phoneValue = String(currentData.الهاتف || '').trim();
                 const altPhoneValue = String(currentData.هاتف_بديل || '').trim();
                 const customerNumberValue = String(currentData.رقم_العميل || currentData['رقم العميل'] || s.رقم_العميل || s['رقم العميل'] || '').trim();
@@ -8300,7 +8297,7 @@
                             ${hasAnotherShipment ? `<div class="housing-duplicate-badge" onclick="showHousingDuplicateShipments('${escapeAttr(s.id)}')">له شحنة أخرى</div>` : ''}
                         </td>
                         <td data-col-idx="2">
-                            <input type="text" class="form-control form-control-sm rounded-3" id="housing-rep-${s.id}" value="${escapeAttr(currentData.المندوب || '')}" oninput="syncHousingDraft('${s.id}')" ${archivedAttr} placeholder="المندوب">
+                            <input type="text" class="form-control form-control-sm rounded-3" id="housing-rep-${s.id}" value="${escapeAttr(currentData.المندوب || '')}" oninput="syncHousingDraft('${s.id}')" ${archivedAttr} placeholder="المندوب" list="dl-housingRep">
                             ${isArchived ? `<span class="housing-archived-label">مؤرشفة</span>` : ''}
                         </td>
                         <td class="text-center small fw-bold text-secondary" data-col-idx="3">${escapeHtml(currentData.m || currentData.م || '---')}</td>
@@ -8333,7 +8330,7 @@
                             </select>
                         </td>
                         <td data-col-idx="13"><input type="text" class="form-control form-control-sm rounded-3" id="housing-reason-${s.id}" value="${escapeAttr(currentData['سبب الحالة'] || currentData.سبب_الحالة || '')}" oninput="syncHousingDraft('${s.id}')" ${archivedAttr}></td>
-                        <td data-col-idx="14"><input type="text" inputmode="numeric" dir="ltr" class="form-control form-control-sm rounded-3 text-end" id="housing-adjusted-${s.id}" value="${escapeAttr(currentData.السعر_بعد_التعديل || '')}" oninput="syncHousingDraft('${s.id}')" ${archivedAttr}></td>
+                        <td data-col-idx="14"><input type="text" inputmode="numeric" dir="ltr" class="form-control form-control-sm rounded-3 text-end" id="housing-adjusted-${s.id}" value="${escapeAttr(currentData.المدفوع || '')}" oninput="syncHousingDraft('${s.id}')" ${archivedAttr}></td>
                         <td class="text-center small fw-bold text-secondary" data-col-idx="15">${escapeHtml(currentData['اسم الموظف'] || currentData.اسم_الموظف || '---')}</td>
                         ${renderHousingExtraCells(s, currentData)}
                     </tr>
@@ -8583,7 +8580,7 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'بيانات مفقودة',
-                        text: `يرجى إدخال السعر بعد التعديل للشحنات التالية أولاً:\n${missing.join('، ')}`,
+                        text: `يرجى إدخال المدفوع للشحنات التالية أولاً:\n${missing.join('، ')}`,
                         confirmButtonText: 'حسناً'
                     });
                     return;
@@ -8633,6 +8630,7 @@
             { idx: 2, key: 'rep', label: 'المندوب', default: true },
             { idx: 3, key: 'm', label: 'm', default: false },
             { idx: 4, key: 'name', label: 'اسم العميل', default: true },
+            { idx: 17, key: 'address', label: 'العنوان', default: true },
             { idx: 5, key: 'zone', label: 'الزون', default: true },
             { idx: 6, key: 'product', label: 'المنتج', default: true },
             { idx: 7, key: 'phone', label: 'الهاتف', default: true },
@@ -8641,11 +8639,10 @@
             { idx: 10, key: 'sender', label: 'الراسل', default: true },
             { idx: 11, key: 'code', label: 'الكود', default: false },
             { idx: 12, key: 'status', label: 'الحالة', default: true },
-            { idx: 13, key: 'reason', label: 'سبب الحالة', default: false },
-            { idx: 14, key: 'adjusted', label: 'السعر بعد التعديل', default: false },
-            { idx: 15, key: 'employee', label: 'الموظف', default: true },
+            { idx: 13, key: 'reason', label: 'سبب الحالة', default: true },
+            { idx: 14, key: 'adjusted', label: 'المدفوع', default: true },
+            { idx: 15, key: 'employee', label: 'الموظف', default: false },
             { idx: 16, key: 'id', label: 'id', default: false },
-            { idx: 17, key: 'address', label: 'العنوان', default: true },
             { idx: 18, key: 'notes', label: 'ملاحظات', default: false },
             { idx: 19, key: 'date', label: 'تاريخ التحديث', default: false },
             { idx: 20, key: 'safi', label: 'الصافي', default: false },
@@ -8722,14 +8719,17 @@
         function renderHousingColList() {
             const hidden = getHousingHiddenCols();
             const order = getHousingColOrder();
-            return order.filter(c => c > 0).map((idx, i) => {
-                const c = HOUSING_ALL_COLS.find(x => x.idx === idx);
+            const filteredOrder = order.filter(c => c > 0);
+            const len = filteredOrder.length;
+            const colMap = new Map(HOUSING_ALL_COLS.map(c => [c.idx, c]));
+            return filteredOrder.map((idx, i) => {
+                const c = colMap.get(idx);
                 if (!c) return '';
                 return `
                     <div class="d-flex align-items-center gap-2 py-1 px-2 border-bottom">
                         <div class="d-flex gap-1 flex-shrink-0">
                             <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="housingColMove(${i},-1)" ${i===0?'disabled':''} style="font-size:0.65rem;"><i class="fas fa-chevron-up"></i></button>
-                            <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="housingColMove(${i},1)" ${i===order.filter(x=>x>0).length-1?'disabled':''} style="font-size:0.65rem;"><i class="fas fa-chevron-down"></i></button>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="housingColMove(${i},1)" ${i===len-1?'disabled':''} style="font-size:0.65rem;"><i class="fas fa-chevron-down"></i></button>
                         </div>
                         <input type="checkbox" id="hcol-${c.key}" ${!hidden.includes(idx)?'checked':''} data-idx="${idx}" onchange="toggleHousingCol(this)">
                         <label for="hcol-${c.key}" class="mb-0 small fw-bold">${c.label}</label>
@@ -8754,12 +8754,16 @@
             const isDark = document.body.getAttribute('data-bs-theme') === 'dark';
             Swal.fire({
                 title: 'تنسيق أعمدة الجدول',
-                html: `<div id="housingColConfigList" class="text-end" style="max-height:400px;overflow-y:auto;">${renderHousingColList()}</div>`,
+                html: '<div id="housingColConfigList" class="text-end" style="max-height:400px;overflow-y:auto;"></div>',
                 showConfirmButton: true,
                 confirmButtonText: 'حفظ',
                 showDenyButton: true,
                 denyButtonText: 'استعادة الافتراضي',
-                customClass: { popup: `rounded-4${isDark ? ' swal-dark' : ''}` }
+                showCloseButton: true,
+                customClass: { popup: `rounded-4${isDark ? ' swal-dark' : ''}` },
+                didOpen: () => {
+                    document.getElementById('housingColConfigList').innerHTML = renderHousingColList();
+                }
             }).then(result => {
                 if (result.isDenied) {
                     localStorage.removeItem('housingHiddenCols');
@@ -9276,7 +9280,7 @@
                     id,
                     fields: {
                         الحالة: s ? (s.الحالة ?? null) : null,
-                        'السعر بعد التعديل': s ? (s['السعر بعد التعديل'] ?? null) : null,
+                        'المدفوع': s ? (s['المدفوع'] ?? null) : null,
                         'سبب الحالة': s ? (s['سبب الحالة'] ?? null) : null
                     }
                 };
@@ -9288,7 +9292,7 @@
             try {
                 const { error } = await supabaseClient
                     .from(CONFIG.TABLES.SHIPMENTS)
-                    .update({ الحالة: 'قيد التوصيل', 'السعر بعد التعديل': null, 'سبب الحالة': null })
+                    .update({ الحالة: 'قيد التوصيل', 'المدفوع': null, 'سبب الحالة': null })
                     .in('id', selectedIds);
 
                 if (error) throw error;
@@ -9304,7 +9308,7 @@
                 // Update local data
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
-                        return { ...s, الحالة: 'قيد التوصيل', 'السعر بعد التعديل': null, 'سبب الحالة': null };
+                        return { ...s, الحالة: 'قيد التوصيل', 'المدفوع': null, 'سبب الحالة': null };
                     }
                     return s;
                 });
@@ -10358,7 +10362,7 @@
                 const amount = escapeHtml(d['المبلغ'] || '---');
                 const rep = escapeHtml(d['المندوب'] || '---');
                 const status = escapeHtml(d['الحالة'] || '---');
-                const price = escapeHtml(d['السعر بعد التعديل'] || d.السعر_بعد_التعديل || '---');
+                const price = escapeHtml(d['المدفوع'] || d.المدفوع || '---');
                 const phones = [phone, altPhone].filter(Boolean).join(' / ') || '---';
                 return `<tr>
                     <td>${i + 1}</td>
@@ -10420,7 +10424,7 @@
                     if (newStatus) payload.الحالة = newStatus;
                     if (newRep) payload.المندوب = newRep;
                     if (newStatus === 'قيد التوصيل') {
-                        payload['السعر بعد التعديل'] = null;
+                        payload['المدفوع'] = null;
                         payload['سبب الحالة'] = null;
                     }
                     const currentU = currentUser.full_name || currentUser.username || 'المدير';
