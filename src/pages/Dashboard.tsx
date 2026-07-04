@@ -722,15 +722,7 @@ export default function Dashboard() {
           >
             {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
           </button>
-          {!isAdmin && (
-            <button 
-              onClick={() => setFilters((prev: any) => ({ ...prev, status: prev.status === 'المفضلة' ? 'الكل' : 'المفضلة' }))}
-              className={`p-2 rounded-full transition-colors ${filters.status === 'المفضلة' ? 'text-red-500 bg-red-500/10' : 'text-text-muted hover:bg-black/5 dark:hover:bg-white/10'}`}
-              title="المفضلة"
-            >
-              <Heart className="w-5 h-5" fill={filters.status === 'المفضلة' ? 'currentColor' : 'none'} />
-            </button>
-          )}
+
           <div className="relative notif-container">
             <button
               onClick={() => setNotifOpen(!notifOpen)}
@@ -1238,24 +1230,24 @@ export default function Dashboard() {
           <>
             <StatsSection stats={repStats} />
 
-            <div className="bg-bg-surface border border-border-subtle rounded-2xl p-4 mb-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-text-main">نسبة الإنجاز</span>
-                <span className="text-sm font-extrabold text-primary">{progressData.pct}%</span>
+            <div className="bg-bg-surface border border-border-subtle rounded-xl p-2 mb-3 shadow-sm">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[0.65rem] font-bold text-text-main">نسبة الإنجاز</span>
+                <span className="text-[0.65rem] font-extrabold text-primary">{progressData.pct}%</span>
               </div>
-              <div className="w-full bg-black/10 dark:bg-white/5 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-black/10 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
                 <div
-                  className="bg-primary h-2.5 rounded-full transition-all duration-500"
+                  className="bg-primary h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${progressData.pct}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-2 text-xs font-semibold text-text-muted">
+              <div className="flex justify-between mt-1 text-[0.55rem] font-semibold text-text-muted">
                 <span>تم <span className="text-text-main font-bold">{progressData.done}</span></span>
                 <span>متبقي <span className="text-text-main font-bold">{progressData.remaining}</span></span>
               </div>
             </div>
 
-            <FilterSection filters={filters} setFilters={setFilters} filterOptions={filterOptions} filterCounts={filterCounts} actionsHidden={actionsHidden} onToggleActions={() => { const val = !actionsHidden; setActionsHidden(val); localStorage.setItem('rep-actions-hidden', val ? 'true' : 'false'); }} />
+            <FilterSection filters={filters} setFilters={setFilters} filterOptions={filterOptions} filterCounts={filterCounts} actionsHidden={actionsHidden} onToggleActions={() => { const val = !actionsHidden; setActionsHidden(val); localStorage.setItem('rep-actions-hidden', val ? 'true' : 'false'); }} favoritesActive={filters.status === 'المفضلة'} onToggleFavorites={() => setFilters((prev: any) => ({ ...prev, status: prev.status === 'المفضلة' ? '' : 'المفضلة' }))} />
 
             <div className="mb-4 flex items-center justify-between bg-bg-surface p-1.5 rounded-xl border border-border-subtle mx-auto max-w-sm">
               <button

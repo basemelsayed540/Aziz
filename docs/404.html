@@ -5,14 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>إدارة الشحنات</title>
   <script type="text/javascript">
-    // Redirect 404 to index.html with original path as hash (for HashRouter)
-    var segments = window.location.pathname.split('/').filter(Boolean);
-    if (segments.length > 1) {
-      var route = '/' + segments.slice(1).join('/');
-      window.location.replace('/' + segments[0] + '/index.html#' + route);
-    } else {
-      window.location.replace('./');
-    }
+    (function () {
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+
+      // GitHub Pages SPA redirect: preserve full URL and redirect to index.html
+      var redirect = '/' +
+        (search
+          ? '?' + search.slice(1).replace(/&/g, '~and~')
+          : '?/' + encodeURIComponent(path.replace(/^\/+/, ''))
+        ) +
+        (hash || '');
+
+      window.location.replace(redirect);
+    })();
   </script>
   <style>
     body {

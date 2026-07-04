@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Eye, EyeOff } from 'lucide-react';
+import { Search, Eye, EyeOff, Heart } from 'lucide-react';
 
 interface FilterOptions {
   daily: string[];
@@ -21,6 +21,8 @@ interface FiltersProps {
   filterCounts?: Record<string, Record<string, number>>;
   actionsHidden?: boolean;
   onToggleActions?: () => void;
+  favoritesActive?: boolean;
+  onToggleFavorites?: () => void;
 }
 
 const filterChips = [
@@ -30,7 +32,7 @@ const filterChips = [
   { key: 'sender' as const, label: 'الراسل', icon: '🏢' },
 ];
 
-export function FilterSection({ filters, setFilters, filterOptions, filterCounts, actionsHidden, onToggleActions }: FiltersProps) {
+export function FilterSection({ filters, setFilters, filterOptions, filterCounts, actionsHidden, onToggleActions, favoritesActive, onToggleFavorites }: FiltersProps) {
   return (
     <div className="space-y-3 mb-6">
       <div className="flex gap-1.5 items-center">
@@ -69,6 +71,46 @@ export function FilterSection({ filters, setFilters, filterOptions, filterCounts
 
           const currentVal = filters[key];
           const isActive = !!currentVal && currentVal !== 'الكل';
+
+          if (key === 'status') {
+            return (
+              <div key={key} className="flex gap-1 col-span-1">
+                <select
+                  value={currentVal}
+                  onChange={(e) => setFilters((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                  className={`flex-1 text-center px-1 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer appearance-none ${
+                    isActive
+                      ? 'bg-primary/20 border-primary text-primary'
+                      : 'bg-bg-surface border-border-subtle text-text-muted hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                  dir="rtl"
+                >
+                  <option value="" className="bg-bg-surface text-text-muted">{icon} {label}</option>
+                  {options.map(opt => {
+                    const cnt = filterCounts?.[key]?.[opt];
+                    return (
+                      <option key={opt} value={opt} className="bg-bg-surface text-text-main">
+                        {opt}{cnt != null ? ` (${cnt})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                {onToggleFavorites && (
+                  <button 
+                    onClick={onToggleFavorites}
+                    className={`p-2 rounded-xl border transition-colors cursor-pointer shrink-0 ${
+                      favoritesActive 
+                        ? 'bg-red-500/20 border-red-500 text-red-500' 
+                        : 'bg-bg-surface border-border-subtle text-text-muted hover:bg-black/5 dark:hover:bg-white/5'
+                    }`}
+                    title="المفضلة"
+                  >
+                    <Heart className="w-4 h-4" fill={favoritesActive ? 'currentColor' : 'none'} />
+                  </button>
+                )}
+              </div>
+            );
+          }
 
           return (
             <select
