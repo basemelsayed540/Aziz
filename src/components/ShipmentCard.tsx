@@ -3,13 +3,16 @@ import { supabase, type Shipment } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { MapPin, Phone, MessageCircle, Map, Box, CreditCard, FileText, Heart, Copy, X as XIcon } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { enNum } from '../utils/enNum';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
   'تم': 'border-green-500',
+  'تم التسليم': 'border-green-500',
   'تعديل سعر': 'border-green-500',
   'شحن': 'border-green-500',
+  'استلم جزئي': 'border-green-500',
   'قيد التوصيل': 'border-amber-500',
   'مؤجل': 'border-orange-500',
   'الغاء': 'border-red-500',
@@ -17,14 +20,16 @@ const statusColors: Record<string, string> = {
 
 const statusTextColors: Record<string, string> = {
   'تم': 'text-emerald-500',
+  'تم التسليم': 'text-emerald-500',
   'قيد التوصيل': 'text-amber-500',
   'مؤجل': 'text-orange-500',
   'الغاء': 'text-red-500',
   'تعديل سعر': 'text-blue-500',
   'شحن': 'text-blue-500',
+  'استلم جزئي': 'text-blue-500',
 };
 
-const hideActionStatuses = ['تم', 'تعديل سعر', 'شحن', 'الغاء'];
+const hideActionStatuses = ['تم', 'تم التسليم', 'تعديل سعر', 'شحن', 'الغاء', 'استلم جزئي'];
 const followupStatuses = ['الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
 
 function formatPhoneForCall(phone: string) {
@@ -114,29 +119,31 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
 
   function buildWAMessage() {
     return encodeURIComponent(
-      `🧾 كود الشحنة: ${shipment['كود الشحنة'] || '-'}\n` +
-      `👤 العميل: ${shipment['اسم العميل'] || '-'}\n` +
-      `📞 الهاتف: ${shipment['الهاتف'] || ''}${shipment['هاتف بديل'] ? ' / ' + shipment['هاتف بديل'] : ''}\n` +
-      `📍 العنوان: ${shipment['العنوان'] || '-'}\n` +
-      `📦 الزون: ${shipment['الزون'] || '-'}\n` +
-      `💰 المبلغ: ${shipment['المبلغ'] || '0'} ج\n` +
-      `📋 الحالة: ${shipment['الحالة'] || '-'}\n` +
-      `🏢 الراسل: ${shipment['الراسل'] || '-'}`
+      `🧾 كود الشحنة: ${enNum(shipment['كود الشحنة']) || '-'}\n` +
+      `👤 العميل: ${enNum(shipment['اسم العميل']) || '-'}\n` +
+      `📞 الهاتف: ${enNum(shipment['الهاتف']) || ''}${shipment['هاتف بديل'] ? ' / ' + enNum(shipment['هاتف بديل']) : ''}\n` +
+      `📍 العنوان: ${enNum(shipment['العنوان']) || '-'}\n` +
+      `📦 الزون: ${enNum(shipment['الزون']) || '-'}\n` +
+      `💰 المبلغ: ${enNum(shipment['المبلغ']) || '0'} ج\n` +
+      `💵 المدفوع: ${enNum(shipment['المدفوع']) || '-'}\n` +
+      `📋 الحالة: ${enNum(shipment['الحالة']) || '-'}\n` +
+      `🏢 الراسل: ${enNum(shipment['الراسل']) || '-'}\n` +
+      `👤 المندوب: ${enNum(shipment['المندوب']) || '-'}`
     );
   }
 
   const copyDetails = () => {
     const details =
-      `🧾 كود الشحنة: ${shipment['كود الشحنة'] || '-'}\n` +
-      `👤 العميل: ${shipment['اسم العميل'] || '-'}\n` +
-      `📞 الهاتف: ${shipment['الهاتف'] || ''}${shipment['هاتف بديل'] ? ' / ' + shipment['هاتف بديل'] : ''}\n` +
-      `📍 العنوان: ${shipment['العنوان'] || '-'}\n` +
-      `📦 الزون: ${shipment['الزون'] || '-'}\n` +
-      `💰 المبلغ: ${shipment['المبلغ'] || '0'} ج\n` +
-      `💵 المدفوع: ${shipment['المدفوع'] || '-'}\n` +
-      `📋 الحالة: ${shipment['الحالة'] || '-'}\n` +
-      `🏢 الراسل: ${shipment['الراسل'] || '-'}\n` +
-      `👤 المندوب: ${shipment['المندوب'] || '-'}`;
+      `🧾 كود الشحنة: ${enNum(shipment['كود الشحنة']) || '-'}\n` +
+      `👤 العميل: ${enNum(shipment['اسم العميل']) || '-'}\n` +
+      `📞 الهاتف: ${enNum(shipment['الهاتف']) || ''}${shipment['هاتف بديل'] ? ' / ' + enNum(shipment['هاتف بديل']) : ''}\n` +
+      `📍 العنوان: ${enNum(shipment['العنوان']) || '-'}\n` +
+      `📦 الزون: ${enNum(shipment['الزون']) || '-'}\n` +
+      `💰 المبلغ: ${enNum(shipment['المبلغ']) || '0'} ج\n` +
+      `💵 المدفوع: ${enNum(shipment['المدفوع']) || '-'}\n` +
+      `📋 الحالة: ${enNum(shipment['الحالة']) || '-'}\n` +
+      `🏢 الراسل: ${enNum(shipment['الراسل']) || '-'}\n` +
+      `👤 المندوب: ${enNum(shipment['المندوب']) || '-'}`;
     navigator.clipboard.writeText(details).then(() => {
       toast.success('تم نسخ تفاصيل الشحنة');
     }).catch(() => {
@@ -146,14 +153,16 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
 
   const doFollowup = () => {
     const details =
-      `🧾 كود الشحنة: ${shipment['كود الشحنة'] || '-'}\n` +
-      `👤 العميل: ${shipment['اسم العميل'] || '-'}\n` +
-      `📞 الهاتف: ${shipment['الهاتف'] || ''}${shipment['هاتف بديل'] ? ' / ' + shipment['هاتف بديل'] : ''}\n` +
-      `📍 العنوان: ${shipment['العنوان'] || '-'}\n` +
-      `📦 الزون: ${shipment['الزون'] || '-'}\n` +
-      `💰 المبلغ: ${shipment['المبلغ'] || '0'} ج\n` +
-      `📋 الحالة: ${shipment['الحالة'] || '-'}\n` +
-      `🏢 الراسل: ${shipment['الراسل'] || '-'}`;
+      `🧾 كود الشحنة: ${enNum(shipment['كود الشحنة']) || '-'}\n` +
+      `👤 العميل: ${enNum(shipment['اسم العميل']) || '-'}\n` +
+      `📞 الهاتف: ${enNum(shipment['الهاتف']) || ''}${shipment['هاتف بديل'] ? ' / ' + enNum(shipment['هاتف بديل']) : ''}\n` +
+      `📍 العنوان: ${enNum(shipment['العنوان']) || '-'}\n` +
+      `📦 الزون: ${enNum(shipment['الزون']) || '-'}\n` +
+      `💰 المبلغ: ${enNum(shipment['المبلغ']) || '0'} ج\n` +
+      `💵 المدفوع: ${enNum(shipment['المدفوع']) || '-'}\n` +
+      `📋 الحالة: ${enNum(shipment['الحالة']) || '-'}\n` +
+      `🏢 الراسل: ${enNum(shipment['الراسل']) || '-'}\n` +
+      `👤 المندوب: ${enNum(shipment['المندوب']) || '-'}`;
     navigator.clipboard.writeText(details).then(() => {
       const sid = String(shipment.id || shipment.m);
       const sent = getFollowupsSent();
@@ -306,7 +315,7 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
 
   const borderColor = statusColors[statusNormalized] || '';
   const textColor = statusTextColors[statusNormalized] || 'text-text-muted';
-  const showAmount = ['تم', 'تعديل سعر', 'شحن'].includes(statusNormalized) && shipment['المدفوع'] != null && shipment['المدفوع'] !== '';
+  const showAmount = ['تم', 'تم التسليم', 'تعديل سعر', 'شحن', 'استلم جزئي'].includes(statusNormalized) && shipment['المدفوع'] != null && shipment['المدفوع'] !== '';
   const displayAmount = showAmount ? shipment['المدفوع'] : shipment['المبلغ'] || '0';
 
   return (
@@ -337,11 +346,11 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
         </div>
         <div className="text-left">
           <div className="font-mono text-lg font-bold text-text-main">
-            {shipment["كود الشحنة"] || 'N/A'}
+            {enNum(shipment["كود الشحنة"]) || 'N/A'}
             {isArchived && <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full mr-2">📦 مؤرشفة</span>}
           </div>
           <div className={cn("text-sm font-bold", textColor)} style={statusNormalized === 'تم' ? { color: '#22c55e' } : statusNormalized === 'قيد التوصيل' ? { color: '#f59e0b' } : statusNormalized === 'مؤجل' ? { color: '#f97316' } : statusNormalized === 'الغاء' ? { color: '#ef4444' } : (statusNormalized === 'تعديل سعر' || statusNormalized === 'شحن') ? { color: '#3b82f6' } : undefined}>
-            {shipment["الحالة"] || '-'}
+            {enNum(shipment["الحالة"]) || '-'}
           </div>
         </div>
       </div>
@@ -354,7 +363,7 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
           </div>
           <div>
             <span className="text-xs text-text-muted block">العميل</span>
-            <span className="font-bold text-md text-text-main">{shipment["اسم العميل"] || '-'}</span>
+            <span className="font-bold text-md text-text-main">{enNum(shipment["اسم العميل"]) || '-'}</span>
           </div>
         </div>
 
@@ -365,8 +374,8 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
           <div className="flex-1">
             <span className="text-xs text-text-muted block">العنوان</span>
             <span className="text-sm font-medium text-text-main block">
-              <span className="text-primary font-bold">{shipment["الزون"]}</span>{' '}
-              {shipment["العنوان"] && `- ${shipment["العنوان"]}`}
+              <span className="text-primary font-bold">{enNum(shipment["الزون"])}</span>{' '}
+              {shipment["العنوان"] && `- ${enNum(shipment["العنوان"])}`}
             </span>
           </div>
         </div>
@@ -377,7 +386,7 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
           </div>
           <div>
             <span className="text-xs text-text-muted block">الراسل</span>
-            <span className="font-bold text-md text-text-main">{shipment["الراسل"] || '-'}</span>
+            <span className="font-bold text-md text-text-main">{enNum(shipment["الراسل"]) || '-'}</span>
           </div>
         </div>
 
@@ -387,7 +396,7 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
               <CreditCard className="w-3 h-3" /> المبلغ المطلوب
             </span>
             <span className="font-bold text-primary text-lg">
-              {displayAmount}
+              {enNum(displayAmount)}
             </span>
           </div>
            <div>
@@ -395,7 +404,7 @@ export function ShipmentCard({ shipment, onUpdate, actionsHidden }: { key?: Reac
               <FileText className="w-3 h-3" /> المنتج
             </span>
             <span className="text-sm font-medium text-text-main line-clamp-1">
-              {shipment["المنتج"] || 'غير محدد'}
+              {enNum(shipment["المنتج"]) || 'غير محدد'}
             </span>
           </div>
         </div>

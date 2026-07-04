@@ -5,6 +5,7 @@ interface FilterOptions {
   daily: string[];
   zone: string[];
   sender: string[];
+  status?: string[];
 }
 
 interface FiltersProps {
@@ -21,8 +22,6 @@ interface FiltersProps {
   actionsHidden?: boolean;
   onToggleActions?: () => void;
 }
-
-const statuses = ['الكل', 'المفضلة', 'بحاجة لمتابعة', 'قيد التوصيل', 'تم', 'مؤجل', 'الغاء', 'شحن', 'تعديل سعر'];
 
 const filterChips = [
   { key: 'daily' as const, label: 'اليومية', icon: '📅' },
@@ -61,7 +60,7 @@ export function FilterSection({ filters, setFilters, filterOptions, filterCounts
       <div className="grid grid-cols-4 gap-2">
         {filterChips.map(({ key, label, icon }) => {
           const options = key === 'status'
-            ? statuses
+            ? filterOptions?.status || []
             : key === 'daily'
               ? filterOptions?.daily || []
               : key === 'zone'

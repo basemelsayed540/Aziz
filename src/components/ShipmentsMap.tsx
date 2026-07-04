@@ -3,7 +3,6 @@ import { APIProvider, Map, AdvancedMarker, Pin, useMapsLibrary, useMap } from '@
 import { type Shipment } from '../services/supabase';
 
 const API_KEY =
-  process.env.GOOGLE_MAPS_PLATFORM_KEY ||
   (import.meta as any).env?.VITE_GOOGLE_MAPS_PLATFORM_KEY ||
   (globalThis as any).GOOGLE_MAPS_PLATFORM_KEY ||
   '';

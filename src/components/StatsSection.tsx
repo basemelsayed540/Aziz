@@ -1,5 +1,6 @@
 import React from 'react';
 import { DollarSign, Percent, ArrowLeftRight, Package } from 'lucide-react';
+import { enNum } from '../utils/enNum';
 
 export interface StatsData {
   paid: number;
@@ -14,7 +15,7 @@ export function StatsSection({ stats }: { stats: StatsData }) {
   const statsConfig = [
     {
       label: 'المدفوع',
-      value: `${stats.paid}`,
+      value: enNum(stats.paid),
       color: 'dark:text-emerald-400 text-emerald-600',
       bg: 'bg-emerald-500/10 dark:bg-emerald-500/5',
       border: 'border-emerald-500/20 dark:border-emerald-500/10',
@@ -22,16 +23,16 @@ export function StatsSection({ stats }: { stats: StatsData }) {
     },
     {
       label: 'العمولة',
-      value: `${stats.commission}`,
+      value: enNum(stats.commission),
       color: 'dark:text-amber-400 text-amber-600',
       bg: 'bg-amber-500/10 dark:bg-amber-500/5',
       border: 'border-amber-500/20 dark:border-amber-500/10',
       icon: <Percent className="w-5 h-5 dark:text-amber-400 text-amber-600" />,
-      extra: stats.doneCount != null ? `${stats.doneCount} شحنة` : undefined,
+      extra: stats.doneCount != null ? `${enNum(stats.doneCount)} شحنة` : undefined,
     },
     {
       label: 'التوريد',
-      value: `${stats.remittance}`,
+      value: enNum(stats.remittance),
       color: 'dark:text-sky-400 text-sky-600',
       bg: 'bg-sky-500/10 dark:bg-sky-500/5',
       border: 'border-sky-500/20 dark:border-sky-500/10',
@@ -40,7 +41,7 @@ export function StatsSection({ stats }: { stats: StatsData }) {
     },
     {
       label: 'الشحنات',
-      value: `${stats.total}`,
+      value: enNum(stats.total),
       color: 'dark:text-purple-400 text-purple-600',
       bg: 'bg-purple-500/10 dark:bg-purple-500/5',
       border: 'border-purple-500/20 dark:border-purple-500/10',

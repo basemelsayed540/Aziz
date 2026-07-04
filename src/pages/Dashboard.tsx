@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, type Shipment, type User } from '../services/supabase';
 import { Navigate } from 'react-router-dom';
 import { 
   LogOut, RefreshCw, Truck, Map as MapIcon, List, Box, Sun, Moon, Users, TrendingUp, 
   CheckCircle2, AlertTriangle, XCircle, Clock, UserPlus, Edit2, Trash2, UserCheck, UserX, Shield, Lock, Mail, Phone as PhoneIcon,
-  Bell
+  Bell, Heart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ShipmentCard } from '../components/ShipmentCard';
@@ -18,19 +18,14 @@ const isArchived = (s: Shipment): boolean => {
   return !!(val && String(val).trim());
 };
 
-const isValidRepStatus = (status: string | null | undefined): boolean => {
-  if (!status) return false;
-  return ['قيد التوصيل', 'تم', 'مؤجل', 'الغاء', 'تعديل سعر', 'شحن'].includes(status.trim());
-};
-
 const isEligibleStatus = (status: string | null | undefined): boolean => {
   if (!status) return false;
-  return ['تم', 'تعديل سعر', 'شحن'].includes(status.trim());
+  return ['تم', 'تم التسليم', 'شحن', 'تعديل سعر', 'استلم جزئي'].includes(status.trim());
 };
 
 const isDeliveredStatus = (status: string | null | undefined): boolean => {
   if (!status) return false;
-  return status.trim() === 'تم';
+  return ['تم', 'تم التسليم', 'تعديل سعر', 'شحن', 'استلم جزئي'].includes(status.trim());
 };
 
 export default function Dashboard() {
@@ -50,6 +45,7 @@ export default function Dashboard() {
   // Notifications (like R)
   const [notifications, setNotifications] = useState<{ title: string; desc: string }[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const isInitialNotif = useRef(true);
 
   // Load snapshot and check notifications when shipments change
   useEffect(() => {
@@ -67,6 +63,8 @@ export default function Dashboard() {
       const customer = s["اسم العميل"] || s["كود الشحنة"] || id;
       if (oldStatus && oldStatus !== newStatus) {
         newNotifs.unshift({ title: `تحديث حالة: ${customer}`, desc: `${oldStatus} ← ${newStatus} • ${timeStr}` });
+      } else if (!isInitialNotif.current && !oldStatus && newStatus) {
+        newNotifs.unshift({ title: `شحنة جديدة: ${customer}`, desc: `الحالة: ${newStatus} • ${timeStr}` });
       }
     });
 
@@ -78,6 +76,8 @@ export default function Dashboard() {
     const newSnapshot: Record<string, string> = {};
     shipments.forEach(s => { newSnapshot[String(s.id || s.m)] = s["الحالة"] || ''; });
     localStorage.setItem('repNotifSnapshot', JSON.stringify(newSnapshot));
+
+    isInitialNotif.current = false;
   }, [shipments]);
 
   // Close panel on outside click
@@ -90,6 +90,52 @@ export default function Dashboard() {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [notifOpen]);
+
+  // Auto-polling every 60s like R
+  useEffect(() => {
+    if (!user || user.role === 'admin') return;
+    const repName = user.username || user.phone || user.email || '';
+    if (!repName) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const orConditions: string[] = [];
+        if (user.username) orConditions.push(`المندوب.eq."${user.username.trim()}"`);
+        if (user.phone) orConditions.push(`المندوب.eq."${user.phone.trim()}"`);
+        if (user.email) orConditions.push(`المندوب.eq."${user.email.trim()}"`);
+        if (!orConditions.length) return;
+
+        const { data } = await supabase
+          .from('invoices')
+          .select('*')
+          .or(orConditions.join(','));
+
+        if (data) {
+          const saved = localStorage.getItem('repNotifSnapshot');
+          const snapshot: Record<string, string> = saved ? JSON.parse(saved) : {};
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          const newNotifs: { title: string; desc: string }[] = [];
+
+          (data as Shipment[]).forEach(s => {
+            const id = String(s.id);
+            const oldStatus = snapshot[id] || '';
+            const newStatus = s["الحالة"] || '';
+            const customer = s["اسم العميل"] || s["كود الشحنة"] || id;
+            if (oldStatus && oldStatus !== newStatus) {
+              newNotifs.unshift({ title: `تحديث حالة: ${customer}`, desc: `${oldStatus} ← ${newStatus} • ${timeStr}` });
+            }
+          });
+
+          if (newNotifs.length) {
+            setNotifications(prev => [...newNotifs, ...prev].slice(0, 50));
+          }
+        }
+      } catch (e) { /* silent */ }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Rep search filter in Admin Mode
   const [adminRepSearch, setAdminRepSearch] = useState('');
@@ -511,8 +557,16 @@ export default function Dashboard() {
       daily: dailies.sort((a, b) => b.localeCompare(a)),
       zone: zones.sort(),
       sender: senders.sort(),
+      status: getStatusList(base),
     };
   }, [dailyBase, shipments, filters.daily]);
+
+  function getStatusList(base: Shipment[]): string[] {
+    const statuses = [...new Set(base.map(s => s["الحالة"]?.trim()).filter(Boolean))].sort();
+    statuses.unshift('المفضلة');
+    statuses.push('بحاجة لمتابعة');
+    return statuses;
+  }
 
   // Filter counts (like R: shows count per option in dropdowns)
   const filterCounts = useMemo(() => {
@@ -561,12 +615,18 @@ export default function Dashboard() {
   // Derived state (Filtered Shipments - for Rep screen) from dailyBase
   const filteredShipments = useMemo(() => {
     return dailyBase.filter(s => {
-      // Hide archived and invalid statuses (like R)
+      // Hide archived (like R)
       if (isArchived(s)) return false;
-      if (!isValidRepStatus(s["الحالة"])) return false;
 
-      // Status filter
-      if (filters.status !== 'الكل') {
+      // R logic: exclude favorited from regular view (only show in 'المفضلة' filter)
+      if (filters.status !== 'المفضلة') {
+        const raw = localStorage.getItem('repFavorites');
+        const favs = raw ? JSON.parse(raw) : {};
+        if (favs[String(s.id || s.m)]) return false;
+      }
+
+      // Status filter (like R: falsey = no filter)
+      if (filters.status) {
         if (filters.status === 'المفضلة') {
           const raw = localStorage.getItem('repFavorites');
           const favs = raw ? JSON.parse(raw) : {};
@@ -662,6 +722,15 @@ export default function Dashboard() {
           >
             {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
           </button>
+          {!isAdmin && (
+            <button 
+              onClick={() => setFilters((prev: any) => ({ ...prev, status: prev.status === 'المفضلة' ? 'الكل' : 'المفضلة' }))}
+              className={`p-2 rounded-full transition-colors ${filters.status === 'المفضلة' ? 'text-red-500 bg-red-500/10' : 'text-text-muted hover:bg-black/5 dark:hover:bg-white/10'}`}
+              title="المفضلة"
+            >
+              <Heart className="w-5 h-5" fill={filters.status === 'المفضلة' ? 'currentColor' : 'none'} />
+            </button>
+          )}
           <div className="relative notif-container">
             <button
               onClick={() => setNotifOpen(!notifOpen)}
