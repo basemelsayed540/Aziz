@@ -3871,9 +3871,10 @@
             });
             if (!confirmation.isConfirmed) return;
 
-            if (!AudioContextClass) return;
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
 
-            const audioContext = new AudioContextClass();
+            const audioContext = new AudioCtx();
             const oscillator = audioContext.createOscillator();
             const gain = audioContext.createGain();
             oscillator.type = 'sine';
@@ -4101,6 +4102,7 @@
                 document.getElementById('navHousingInfo').style.setProperty('display', 'flex', 'important');
                 if (housingSidebar) housingSidebar.style.display = 'none';
                 if (adminSidebar) adminSidebar.classList.add('hidden-sidebar');
+                renderUsers();
             } else {
                 document.getElementById('navHousingInfo').style.setProperty('display', 'none', 'important');
             }
