@@ -3309,6 +3309,41 @@
         [data-bs-theme="dark"] .gen-stats-progress-container {
             background: rgba(148, 163, 184, 0.1);
         }
+
+        /* ===== Housing Auto-Refresh Countdown Badge ===== */
+        .housing-refresh-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            margin-inline-start: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #64748b;
+            background: rgba(148, 163, 184, 0.12);
+            border-radius: 9px;
+            transition: opacity 0.3s, background 0.3s;
+            vertical-align: middle;
+            user-select: none;
+        }
+        .housing-refresh-badge.near-zero {
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.12);
+        }
+        .housing-refresh-badge.refreshing {
+            opacity: 0;
+        }
+        [data-bs-theme="dark"] .housing-refresh-badge {
+            color: #94a3b8;
+            background: rgba(148, 163, 184, 0.1);
+        }
+        [data-bs-theme="dark"] .housing-refresh-badge.near-zero {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
     </style>
 </head>
 
@@ -3716,10 +3751,11 @@
                                     <span class="badge bg-white text-primary housing-save-count ms-1"
                                         id="housingChangesBadge">0</span>
                                 </button>
-                                <button type="button"
+                                <button type="button" id="housingRefreshBtn"
                                     class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm flex-shrink-0 px-3"
-                                    onclick="refreshHousingData()" title="تحديث البيانات">
+                                    onclick="housingManualRefresh()" title="تحديث البيانات">
                                     <i class="fas fa-sync-alt me-1"></i> تحديث
+                                    <span class="housing-refresh-badge" id="housingRefreshBadge">60</span>
                                 </button>
                                 <input id="housingSearch" type="text"
                                     class="form-control rounded-pill border-secondary"
@@ -6562,7 +6598,7 @@
         async function fetchGenStatsDailyOptions() {
             try {
                 const pageSize = 1000;
-                const dailyMap = new Map();
+                const archivedCountMap = {};
                 const countMap = {};
                 
                 for (let start = 0; ; start += pageSize) {
@@ -6582,8 +6618,7 @@
                         
                         const v = r['ارشيف'] ? String(r['ارشيف']).trim() : '';
                         const isArch = v && v !== 'false' && v !== '0';
-                        if (isArch) dailyMap.set(d, true);
-                        if (!dailyMap.has(d)) dailyMap.set(d, false);
+                        if (isArch) archivedCountMap[d] = (archivedCountMap[d] || 0) + 1;
                     });
                     
                     if (data.length < pageSize) break;
@@ -6592,9 +6627,11 @@
                 genStatsDailyCounts = countMap;
                 const archived = new Set();
                 const dailies = [];
-                dailyMap.forEach((isArch, d) => {
+                Object.keys(countMap).forEach(d => {
                     dailies.push(d);
-                    if (isArch) archived.add(d);
+                    if (countMap[d] > 0 && (archivedCountMap[d] || 0) === countMap[d]) {
+                        archived.add(d);
+                    }
                 });
                 genStatsArchivedDailiesSet = archived;
                 
@@ -7865,6 +7902,7 @@
         async function importHousingExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
+            window.housingWriteOperationActive = true;
 
             const extractMissingSchemaColumn = (message) => {
                 const match = String(message || '').match(/Could not find the '([^']+)' column of 'abdo'/);
@@ -8091,7 +8129,7 @@
                         confirmButtonColor: '#4f46e5'
                     });
 
-                    if (!isConfirmed) return;
+            if (!isConfirmed) { window.housingWriteOperationActive = false; return; }
 
                     const { value: uploadedDailyValue, isConfirmed: isDailyConfirmed } = await Swal.fire({
                         title: 'إضافة اليومية',
@@ -8119,8 +8157,29 @@
                         item['اليومية'] = normalizedUploadedDailyValue;
                     });
 
-                    showLoading(true);
-                    
+                    const totalImportRows = updates.length;
+                    const totalImportBatches = Math.ceil(totalImportRows / 100);
+                    let importCurrentBatch = 0;
+
+                    Swal.fire({
+                        title: 'جاري رفع البيانات...',
+                        html: `
+                            <div class="progress mt-3" style="height: 20px;">
+                                <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="mt-3 fs-6 fw-bold" id="import-progress-text">جاري بدء الرفع...</div>
+                            <div class="small text-muted mt-1" id="import-progress-count">0 / ${totalImportRows} صفة</div>
+                        `,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    const importProgressBar = document.getElementById('import-progress-bar');
+                    const importProgressText = document.getElementById('import-progress-text');
+                    const importProgressCount = document.getElementById('import-progress-count');
+
                     const isUpsertConstraintError = (err) =>
                         err && (
                             err.code === '42P10' ||
@@ -8168,7 +8227,16 @@
                             } else {
                                 successCount += payloads.length;
                             }
+
+                            importCurrentBatch++;
+                            const uploadedRows = Math.min(i + chunkSize, totalImportRows);
+                            const pct = Math.round((uploadedRows / totalImportRows) * 100);
+                            if (importProgressBar) importProgressBar.style.width = `${pct}%`;
+                            if (importProgressText) importProgressText.innerText = `جاري رفع الدفعة ${importCurrentBatch} / ${totalImportBatches}`;
+                            if (importProgressCount) importProgressCount.innerText = `${uploadedRows} / ${totalImportRows} صفة`;
                         }
+
+                        Swal.close();
 
                         const hasProcessingError = successCount < updates.length || Boolean(lastError);
                         let resultMessage = hasProcessingError
@@ -8191,7 +8259,7 @@
                         console.error("Bulk Process Error:", bulkErr);
                         Swal.fire('خطأ في المعالجة', 'حدث خطأ غير متوقع أثناء تحديث البيانات: ' + bulkErr.message, 'error');
                     } finally {
-                        showLoading(false);
+                        Swal.close();
                         if (currentDailyFilter) await fetchShipments(currentDailyFilter);
                         refreshDashboard();
                     }
@@ -8204,8 +8272,10 @@
             } catch (err) {
                 console.error("Import Global Error:", err);
                 showLoading(false);
+                window.housingWriteOperationActive = false;
                 Swal.fire('خطأ في العملية', 'فشل استيراد الملف: ' + err.message, 'error');
             }
+            window.housingWriteOperationActive = false;
         }
 
         async function openHousingQrScanner() {
@@ -9602,8 +9672,9 @@
         }
 
         async function saveAllHousingChanges() {
+            window.housingWriteOperationActive = true;
             const entries = getHousingDraftEntries();
-            if (!entries.length) return;
+            if (!entries.length) { window.housingWriteOperationActive = false; return; }
 
             // التحقق من صحة البيانات (إجبار المدفوع عند اختيار تعديل سعر أو شحن)
             for (const entry of entries) {
@@ -9623,6 +9694,7 @@
                         inp.style.border = '2px solid #dc3545';
                         inp.style.backgroundColor = '#fff8f8';
                     }
+                    window.housingWriteOperationActive = false;
                     return;
                 }
             }
@@ -9744,6 +9816,7 @@
 
             refreshDashboard();
             updateHousingSaveButtonState();
+            window.housingWriteOperationActive = false;
         }
 
         // ===== Housing Dashboard Statistics =====
@@ -10533,14 +10606,46 @@
                 confirmButtonColor: '#0dcaf0'
             }).then(async ({ isConfirmed }) => {
                 if (!isConfirmed) return;
+                window.housingWriteOperationActive = true;
+                try {
                 const BATCH = 500;
+                const totalBatches = Math.ceil(dbIds.length / BATCH);
+                let currentStep = 0;
+
+                Swal.fire({
+                    title: 'جاري تعيين المندوب...',
+                    html: `
+                        <div class="progress mt-3" style="height: 20px;">
+                            <div id="bulk-assign-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-3 fs-6 fw-bold" id="bulk-assign-progress-text">جاري بدء العملية...</div>
+                        <div class="small text-muted mt-1" id="bulk-assign-progress-count">0 / ${totalBatches}</div>
+                    `,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const progressBar = document.getElementById('bulk-assign-progress-bar');
+                const progressText = document.getElementById('bulk-assign-progress-text');
+                const progressCount = document.getElementById('bulk-assign-progress-count');
+
                 let success = 0, fail = 0;
                 const payload = { 'المندوب': rep, 'الموظف': currentUser.full_name || currentUser.username || 'المدير' };
                 for (let i = 0; i < dbIds.length; i += BATCH) {
                     const chunk = dbIds.slice(i, i + BATCH);
                     const { error } = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).update(payload).in('id', chunk);
                     if (!error) success += chunk.length; else fail += chunk.length;
+                    currentStep++;
+                    const percent = Math.round((currentStep / totalBatches) * 100);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressText) progressText.innerText = `جاري التعيين ${Math.min(i + BATCH, dbIds.length)} / ${dbIds.length}`;
+                    if (progressCount) progressCount.innerText = `${currentStep} / ${totalBatches}`;
                 }
+
+                Swal.close();
+
                 dbIds.forEach(dbId => {
                     const s = allShipments.find(sh => String(getShipmentDatabaseId(sh)) === String(dbId));
                     if (s) s.المندوب = rep;
@@ -10550,6 +10655,7 @@
                     renderHousingSection();
                     document.getElementById('housingBulkRepInput').value = '';
                 }
+                } finally { window.housingWriteOperationActive = false; }
             });
         }
 
@@ -10565,6 +10671,8 @@
                 confirmButtonColor: '#0dcaf0'
             }).then(async ({ isConfirmed }) => {
                 if (!isConfirmed) return;
+                window.housingWriteOperationActive = true;
+                try {
                 const BATCH = 500;
                 let success = 0, fail = 0;
                 const payload = { 'اليومية': newName, 'الموظف': currentUser.full_name || currentUser.username || 'المدير' };
@@ -10582,6 +10690,7 @@
                     renderHousingSection();
                     document.getElementById('housingBulkDailyInput').value = '';
                 }
+                } finally { window.housingWriteOperationActive = false; }
             });
         }
 
@@ -10726,41 +10835,91 @@
                 confirmButtonColor: '#0dcaf0'
             }).then(async ({ isConfirmed }) => {
                 if (!isConfirmed) return;
+                window.housingWriteOperationActive = true;
+                try {
                 const BATCH = 500;
-                let success = 0, fail = 0;
-                const basePayload = { 'الحالة': status, 'الموظف': currentUser.full_name || currentUser.username || 'المدير' };
                 const idsAll = editableShipments.map(s => String(getShipmentDatabaseId(s))).filter(Boolean);
-                for (let i = 0; i < idsAll.length; i += BATCH) {
-                    const chunk = idsAll.slice(i, i + BATCH);
-                    const { error } = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).update(basePayload).in('id', chunk);
-                    if (!error) success += chunk.length; else fail += chunk.length;
-                }
+
                 const clearIds = editableShipments.filter(s => {
                     const prev = s.الحالة || '';
                     return (['تم', 'تعديل سعر', 'شحن'].includes(prev) && ['الغاء', 'مؤجل', ''].includes(status));
                 }).map(s => String(getShipmentDatabaseId(s))).filter(Boolean);
+                const toSetAmount = status === 'تم' ? editableShipments.filter(s => {
+                    const data = getHousingDisplayShipmentData(s);
+                    return !String(data.المدفوع || '').trim() && String(data.المبلغ || '').trim();
+                }) : [];
+
+                const phase1Steps = Math.ceil(idsAll.length / BATCH);
+                const phase2Steps = clearIds.length ? Math.ceil(clearIds.length / BATCH) : 0;
+                const phase3Steps = toSetAmount.length;
+                const totalSteps = phase1Steps + phase2Steps + phase3Steps;
+                let currentStep = 0;
+
+                Swal.fire({
+                    title: 'جاري تغيير الحالة...',
+                    html: `
+                        <div class="progress mt-3" style="height: 20px;">
+                            <div id="bulk-status-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-3 fs-6 fw-bold" id="bulk-status-progress-text">جاري بدء العملية...</div>
+                        <div class="small text-muted mt-1" id="bulk-status-progress-count">0 / ${totalSteps}</div>
+                    `,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const progressBar = document.getElementById('bulk-status-progress-bar');
+                const progressText = document.getElementById('bulk-status-progress-text');
+                const progressCount = document.getElementById('bulk-status-progress-count');
+
+                function updateBulkStatusProgress(text) {
+                    currentStep++;
+                    const percent = Math.round((currentStep / totalSteps) * 100);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressText) progressText.innerText = text;
+                    if (progressCount) progressCount.innerText = `${currentStep} / ${totalSteps}`;
+                }
+
+                let success = 0, fail = 0;
+                const basePayload = { 'الحالة': status, 'الموظف': currentUser.full_name || currentUser.username || 'المدير' };
+
+                for (let i = 0; i < idsAll.length; i += BATCH) {
+                    const chunk = idsAll.slice(i, i + BATCH);
+                    const { error } = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).update(basePayload).in('id', chunk);
+                    if (!error) success += chunk.length; else fail += chunk.length;
+                    updateBulkStatusProgress(`جاري تحديث الحالة ${i + chunk.length} / ${idsAll.length}`);
+                }
+
                 if (clearIds.length) {
                     for (let i = 0; i < clearIds.length; i += BATCH) {
                         const chunk = clearIds.slice(i, i + BATCH);
                         await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).update({ 'سبب الحالة': '', 'المدفوع': '' }).in('id', chunk);
+                        updateBulkStatusProgress('جاري مسح الحقول الإضافية...');
                     }
                 }
+
                 if (status === 'تم') {
-                    const toSetAmount = editableShipments.filter(s => {
-                        const data = getHousingDisplayShipmentData(s);
-                        return !String(data.المدفوع || '').trim() && String(data.المبلغ || '').trim();
-                    });
                     for (const s of toSetAmount) {
                         const dbId = getShipmentDatabaseId(s);
                         const data = getHousingDisplayShipmentData(s);
                         if (dbId) await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).update({ 'المدفوع': data.المبلغ }).eq('id', dbId);
+                        updateBulkStatusProgress('جاري إكمال المدفوع...');
                     }
                 }
+
+                Swal.close();
+
                 editableShipments.forEach(s => {
                     s.الحالة = status;
                 });
+                housingDataVersion++;
+                housingDisplayDataCache.clear();
+                housingFilteredResultsCache.clear();
                 Swal.fire({ icon: fail ? 'warning' : 'success', title: fail ? 'تم مع بعض الأخطاء' : 'تم التحديث', text: `نجاح: ${success}، فشل: ${fail}` });
                 if (success) renderHousingSection();
+                } finally { window.housingWriteOperationActive = false; }
             });
         }
 
@@ -11269,14 +11428,17 @@
         }
 
         async function archiveSelectedHousingShipments() {
+            window.housingWriteOperationActive = true;
             const { selectedDbIds: checkedIds, hasMissingDbIds: missingInChecked, selectedCodes } = getSelectedHousingDatabaseIds();
 
             if (checkedIds.length === 0) {
+                window.housingWriteOperationActive = false;
                 Swal.fire('تنبيه', 'يرجى تحديد الشحنات المطلوب أرشفتها أولاً', 'warning');
                 return;
             }
 
             if (missingInChecked) {
+                window.housingWriteOperationActive = false;
                 Swal.fire('خطأ', 'بعض الشحنات المحددة لا تحتوي على id حقيقي من قاعدة البيانات، لذلك تم إيقاف الأرشفة حفاظاً على البيانات.', 'error');
                 return;
             }
@@ -11305,44 +11467,89 @@
                     cancelButtonText: 'الغاء',
                     inputValidator: v => v ? undefined : 'يرجى إدخال كلمة المرور'
                 });
-                if (!password) return;
+                if (!password) { window.housingWriteOperationActive = false; return; }
 
                 const isValid = await verifyCurrentPasswordSecure(password);
                 if (!isValid) {
+                    window.housingWriteOperationActive = false;
                     Swal.fire('خطأ', 'كلمة المرور غير صحيحة', 'error');
                     return;
                 }
 
-                showLoading(true);
+                showLoading(false);
+
+                const ARCHIVE_BATCH = 200;
+                const archiveBatches = Math.ceil(checkedIds.length / ARCHIVE_BATCH);
+                let archiveStep = 0;
+
+                Swal.fire({
+                    title: 'جاري الاستعادة...',
+                    html: `
+                        <div class="progress mt-3" style="height: 20px;">
+                            <div id="bulk-unarchive-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-3 fs-6 fw-bold" id="bulk-unarchive-progress-text">جاري بدء الاستعادة...</div>
+                        <div class="small text-muted mt-1" id="bulk-unarchive-progress-count">0 / ${archiveBatches}</div>
+                    `,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const unarchProgressBar = document.getElementById('bulk-unarchive-progress-bar');
+                const unarchProgressText = document.getElementById('bulk-unarchive-progress-text');
+                const unarchProgressCount = document.getElementById('bulk-unarchive-progress-count');
+
+                let unarchSuccess = 0, unarchFail = 0;
                 try {
-                    const { error } = await supabaseClient
-                        .from(CONFIG.TABLES.SHIPMENTS)
-                        .update({ ارشيف: '' })
-                        .in('id', checkedIds);
+                    for (let i = 0; i < checkedIds.length; i += ARCHIVE_BATCH) {
+                        const chunk = checkedIds.slice(i, i + ARCHIVE_BATCH);
+                        const { error } = await supabaseClient
+                            .from(CONFIG.TABLES.SHIPMENTS)
+                            .update({ ارشيف: '' })
+                            .in('id', chunk);
+                        if (!error) unarchSuccess += chunk.length; else unarchFail += chunk.length;
+                        archiveStep++;
+                        const pct = Math.round((archiveStep / archiveBatches) * 100);
+                        if (unarchProgressBar) unarchProgressBar.style.width = `${pct}%`;
+                        if (unarchProgressText) unarchProgressText.innerText = `جاري الاستعادة ${Math.min(i + ARCHIVE_BATCH, checkedIds.length)} / ${checkedIds.length}`;
+                        if (unarchProgressCount) unarchProgressCount.innerText = `${archiveStep} / ${archiveBatches}`;
+                    }
 
-                    if (error) throw error;
+                    Swal.close();
 
-                    allShipments = allShipments.map(s => {
-                        if (checkedIds.includes(getShipmentDatabaseId(s))) {
-                            return { ...s, ارشيف: '' };
+                    if (unarchFail > 0 && unarchSuccess === 0) {
+                        Swal.fire('خطأ', 'فشلت الاستعادة لجميع الشحنات.', 'error');
+                    } else {
+                        allShipments = allShipments.map(s => {
+                            if (checkedIds.includes(getShipmentDatabaseId(s))) {
+                                return { ...s, ارشيف: '' };
+                            }
+                            return s;
+                        });
+                        allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
+
+                        document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
+                        const selectAll = document.getElementById('housingSelectAll');
+                        if (selectAll) selectAll.checked = false;
+                        updateHousingRowSelection();
+                        markHousingDataChanged();
+                        refreshDashboard();
+
+                        if (unarchFail > 0) {
+                            Swal.fire({ icon: 'warning', title: 'تمت الاستعادة جزئياً', text: `تم استعادة ${unarchSuccess} شحنة، وفشلت ${unarchFail} شحنة.` });
+                        } else {
+                            Swal.fire({ icon: 'success', title: 'تمت الاستعادة بنجاح', text: `تم استعادة ${unarchSuccess} شحنة من الأرشفة.`, timer: 2500, showConfirmButton: false });
                         }
-                        return s;
-                    });
-                    allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
-
-                    document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
-                    const selectAll = document.getElementById('housingSelectAll');
-                    if (selectAll) selectAll.checked = false;
-                    updateHousingRowSelection();
-                    markHousingDataChanged();
-                    refreshDashboard();
-
-                    Swal.fire({ icon: 'success', title: 'تمت الاستعادة بنجاح', text: `تم استعادة ${checkedIds.length} شحنة من الأرشفة.`, timer: 2500, showConfirmButton: false });
+                    }
                 } catch (err) {
                     console.error("Unarchive Error:", err);
+                    Swal.close();
                     Swal.fire('خطأ في العملية', 'فشلت الاستعادة: ' + err.message, 'error');
+                } finally {
+                    window.housingWriteOperationActive = false;
                 }
-                showLoading(false);
                 return;
             }
 
@@ -11357,38 +11564,80 @@
                 confirmButtonText: 'تأكيد الأرشفة',
                 cancelButtonText: 'الغاء'
             });
-            if (!isConfirmed) return;
+            if (!isConfirmed) { window.housingWriteOperationActive = false; return; }
 
-            showLoading(true);
+            const ARCHIVE_BATCH = 200;
+            const archiveBatches = Math.ceil(checkedIds.length / ARCHIVE_BATCH);
+            let archiveStep = 0;
+
+            Swal.fire({
+                title: 'جاري الأرشفة...',
+                html: `
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="bulk-archive-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-3 fs-6 fw-bold" id="bulk-archive-progress-text">جاري بدء الأرشفة...</div>
+                    <div class="small text-muted mt-1" id="bulk-archive-progress-count">0 / ${archiveBatches}</div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            const archProgressBar = document.getElementById('bulk-archive-progress-bar');
+            const archProgressText = document.getElementById('bulk-archive-progress-text');
+            const archProgressCount = document.getElementById('bulk-archive-progress-count');
+
+            let archSuccess = 0, archFail = 0;
             try {
-                const { error } = await supabaseClient
-                    .from(CONFIG.TABLES.SHIPMENTS)
-                    .update({ ارشيف: archiveDate })
-                    .in('id', checkedIds);
+                for (let i = 0; i < checkedIds.length; i += ARCHIVE_BATCH) {
+                    const chunk = checkedIds.slice(i, i + ARCHIVE_BATCH);
+                    const { error } = await supabaseClient
+                        .from(CONFIG.TABLES.SHIPMENTS)
+                        .update({ ارشيف: archiveDate })
+                        .in('id', chunk);
+                    if (!error) archSuccess += chunk.length; else archFail += chunk.length;
+                    archiveStep++;
+                    const pct = Math.round((archiveStep / archiveBatches) * 100);
+                    if (archProgressBar) archProgressBar.style.width = `${pct}%`;
+                    if (archProgressText) archProgressText.innerText = `جاري الأرشفة ${Math.min(i + ARCHIVE_BATCH, checkedIds.length)} / ${checkedIds.length}`;
+                    if (archProgressCount) archProgressCount.innerText = `${archiveStep} / ${archiveBatches}`;
+                }
 
-                if (error) throw error;
+                Swal.close();
 
-                allShipments = allShipments.map(s => {
-                    if (checkedIds.includes(getShipmentDatabaseId(s))) {
-                        return { ...s, ارشيف: archiveDate };
+                if (archFail > 0 && archSuccess === 0) {
+                    Swal.fire('خطأ', 'فشلت الأرشفة لجميع الشحنات.', 'error');
+                } else {
+                    allShipments = allShipments.map(s => {
+                        if (checkedIds.includes(getShipmentDatabaseId(s))) {
+                            return { ...s, ارشيف: archiveDate };
+                        }
+                        return s;
+                    });
+                    allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
+
+                    document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
+                    const selectAll = document.getElementById('housingSelectAll');
+                    if (selectAll) selectAll.checked = false;
+                    updateHousingRowSelection();
+                    markHousingDataChanged();
+                    refreshDashboard();
+
+                    if (archFail > 0) {
+                        Swal.fire({ icon: 'warning', title: 'تمت الأرشفة جزئياً', text: `تمت أرشفة ${archSuccess} شحنة، وفشلت ${archFail} شحنة.` });
+                    } else {
+                        Swal.fire({ icon: 'success', title: 'تمت الأرشفة بنجاح', text: `تمت أرشفة ${archSuccess} شحنة بتاريخ ${archiveDate}.`, timer: 2500, showConfirmButton: false });
                     }
-                    return s;
-                });
-                allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
-
-                document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
-                const selectAll = document.getElementById('housingSelectAll');
-                if (selectAll) selectAll.checked = false;
-                updateHousingRowSelection();
-                markHousingDataChanged();
-                refreshDashboard();
-
-                Swal.fire({ icon: 'success', title: 'تمت الأرشفة بنجاح', text: `تمت أرشفة ${checkedIds.length} شحنة بتاريخ ${archiveDate}.`, timer: 2500, showConfirmButton: false });
+                }
             } catch (err) {
                 console.error("Archive Selected Error:", err);
+                Swal.close();
                 Swal.fire('خطأ في العملية', 'فشلت الأرشفة: ' + err.message, 'error');
+            } finally {
+                window.housingWriteOperationActive = false;
             }
-            showLoading(false);
         }
 
         async function moveSelectedToInDelivery() {
@@ -13086,6 +13335,100 @@
                 }
             });
         }
+
+        /* =============================================================
+           HOUSING AUTO-REFRESH COUNTDOWN — Isolated Module
+           =============================================================
+           Added: 2026-07-13
+           To remove: delete everything between these comment markers
+           (from this block to the end of this module) and also:
+             - Remove the <span id="housingRefreshBadge"> from the button HTML
+             - Remove the .housing-refresh-badge CSS block
+             - Change onclick="housingManualRefresh()" back to onclick="refreshHousingData()"
+             - Remove id="housingRefreshBtn" from the button
+           ============================================================= */
+
+        (function () {
+            'use strict';
+
+            var HOUSING_REFRESH_INTERVAL = 60;
+            var housingAutoRefreshIntervalId = null;
+            var housingRefreshCountdown = HOUSING_REFRESH_INTERVAL;
+            var housingIsAutoRefreshing = false;
+            window.housingWriteOperationActive = false;
+
+            function isHousingSectionVisible() {
+                var el = document.getElementById('section-housing');
+                if (!el || el.style.display === 'none') return false;
+                if (typeof Swal !== 'undefined' && Swal.isVisible && Swal.isVisible()) return false;
+                return true;
+            }
+
+            function isUserTypingInHousingTable() {
+                var active = document.activeElement;
+                var table = document.getElementById('housingShipmentsTable');
+                return !!(active && table && table.contains(active) &&
+                          (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA'));
+            }
+
+            function updateBadgeUI() {
+                var badge = document.getElementById('housingRefreshBadge');
+                if (!badge) return;
+                badge.textContent = housingRefreshCountdown;
+                badge.classList.toggle('near-zero', housingRefreshCountdown <= 10);
+            }
+
+            async function housingAutoRefreshSilent() {
+                if (housingIsAutoRefreshing) return;
+                housingIsAutoRefreshing = true;
+                try {
+                    var dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                    if (dailyVal) {
+                        await fetchShipments(dailyVal);
+                        housingDataVersion++;
+                        housingDisplayDataCache.clear();
+                        housingFilteredResultsCache.clear();
+                        renderHousingSection();
+                    }
+                } catch (err) {
+                    console.warn('Housing auto-refresh failed:', err);
+                }
+                housingIsAutoRefreshing = false;
+            }
+
+            function housingAutoRefreshTick() {
+                if (!isHousingSectionVisible()) {
+                    housingRefreshCountdown = HOUSING_REFRESH_INTERVAL;
+                    updateBadgeUI();
+                    return;
+                }
+                housingRefreshCountdown--;
+                if (housingRefreshCountdown <= 0) {
+                    housingRefreshCountdown = HOUSING_REFRESH_INTERVAL;
+                    if (!window.housingWriteOperationActive && !isUserTypingInHousingTable()) {
+                        housingAutoRefreshSilent();
+                    }
+                }
+                updateBadgeUI();
+            }
+
+            function startHousingAutoRefreshCountdown() {
+                if (housingAutoRefreshIntervalId) {
+                    clearInterval(housingAutoRefreshIntervalId);
+                }
+                housingRefreshCountdown = HOUSING_REFRESH_INTERVAL;
+                updateBadgeUI();
+                housingAutoRefreshIntervalId = setInterval(housingAutoRefreshTick, 1000);
+            }
+
+            window.housingManualRefresh = function () {
+                refreshHousingData();
+                housingRefreshCountdown = HOUSING_REFRESH_INTERVAL;
+                updateBadgeUI();
+            };
+
+            startHousingAutoRefreshCountdown();
+        })();
 </script>
 </body>
 
