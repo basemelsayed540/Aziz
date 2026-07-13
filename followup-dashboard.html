@@ -252,7 +252,7 @@
         </div>
         <div class="flex gap-1 mb-2 overflow-x-auto pb-1 items-center">
             <button class="filter-chip active" id="chipArchive" data-placeholder-active="📁 نشطة" data-placeholder-archived="📁 مؤرشفة" onclick="toggleArchiveFilter()">📁 نشطة</button>
-            <select id="filterDaily" class="filter-chip-select" onchange="scheduleFilter()"><option value="">📅 اليومية</option></select>
+            <select id="filterDaily" class="filter-chip-select" onchange="onDailyChange()"><option value="">📅 اليومية</option></select>
             <select id="filterRep" class="filter-chip-select" onchange="scheduleFilter()"><option value="">👤 المندوب</option></select>
             <select id="filterZone" class="filter-chip-select" onchange="scheduleFilter()"><option value="">📍 الزون</option></select>
             <select id="filterSender" class="filter-chip-select" onchange="scheduleFilter()"><option value="">🏢 الراسل</option></select>
@@ -279,7 +279,11 @@
 
     var supabaseClient = getSharedSupabaseClient();
     var allShipments = [];
+    var allDailyKeys = [];
+    var notifShipments = [];
     var filteredShipments = [];
+    var renderedCount = 40;
+    var PAGE_SIZE = 40;
     var filterTimer = null;
     var filterData = { daily: [], zone: [], product: [], sender: [] };
     var filterCounts = { daily: {}, status: {}, zone: {}, product: {}, sender: {} };
@@ -387,7 +391,7 @@
     function getFavorites() { try { return JSON.parse(localStorage.getItem('followupFavorites')) || {}; } catch(e) { return {}; } }
     function saveFavorites(fav) { localStorage.setItem('followupFavorites', JSON.stringify(fav)); }
     function isFavorite(id) { return !!getFavorites()[id]; }
-    function toggleFavorite(id) { var fav = getFavorites(); if (fav[id]) { delete fav[id]; } else { fav[id] = Date.now(); } saveFavorites(fav); scheduleFilter(); }
+    function toggleFavorite(id) { var fav = getFavorites(); if (fav[id]) { delete fav[id]; } else { fav[id] = Date.now(); } saveFavorites(fav); scheduleFilter(false); }
 
     function getFollowupsSent() { try { return JSON.parse(localStorage.getItem(followerKey + '_sent')) || {}; } catch(e) { return {}; } }
     function getFollowupsDismissed() { try { return JSON.parse(localStorage.getItem(followerKey + '_dismissed')) || {}; } catch(e) { return {}; } }
@@ -395,7 +399,7 @@
     var notifOpen = false;
     function getNeedsFollowup() {
         var dismissed = getFollowupsDismissed();
-        return allShipments.filter(function(s) { return followupStatuses.includes(s['الحالة'] || '') && !dismissed[String(s.id)]; });
+        return notifShipments.filter(function(s) { return followupStatuses.includes(s['الحالة'] || '') && !dismissed[String(s.id)]; });
     }
     function updateNotifications() {
         var needs = getNeedsFollowup();
@@ -444,7 +448,7 @@
         dismissed[sid] = true;
         localStorage.setItem(followerKey + '_dismissed', JSON.stringify(dismissed));
         updateNotifications();
-        applyFilters();
+        applyFilters(false);
     }
     function dismissAllNotifications() {
         var needs = getNeedsFollowup();
@@ -455,7 +459,7 @@
         applyFilters();
     }
     function doFollowupNotif(sid) {
-        var s = allShipments.find(function(x) { return String(x.id) === sid; });
+        var s = notifShipments.find(function(x) { return String(x.id) === sid; });
         if (!s) return;
         var msg = encodeURIComponent(
             '🧾 كود الشحنة: ' + (s['كود الشحنة'] || '-') + '\n' +
@@ -473,7 +477,7 @@
         var sent = getFollowupsSent(); sent[sid] = true; localStorage.setItem(followerKey + '_sent', JSON.stringify(sent));
         var dismissed = getFollowupsDismissed(); dismissed[sid] = true; localStorage.setItem(followerKey + '_dismissed', JSON.stringify(dismissed));
         updateNotifications();
-        applyFilters();
+        applyFilters(false);
         if (phones.length === 1) {
             window.open('https://api.whatsapp.com/send?phone=' + formatPhoneForWA(phones[0]) + '&text=' + msg, '_blank');
         } else if (phones.length > 1) {
@@ -495,26 +499,56 @@
         }
     });
 
-    // Fetch all shipments (no rep filter) — with pagination (Supabase default limit is 1000)
+    // === loadShipments() — القديم (يُعلّق للرجوع) ===
+    // async function loadShipments() {
+    //     try {
+    //         var pageSize = 1000;
+    //         var from = 0;
+    //         var allData = [];
+    //         while (true) {
+    //             var res = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).select('*').order('m', { ascending: false }).range(from, from + pageSize - 1);
+    //             if (res.error) throw res.error;
+    //             var chunk = res.data || [];
+    //             allData = allData.concat(chunk);
+    //             if (chunk.length < pageSize) break;
+    //             from += pageSize;
+    //         }
+    //         allShipments = allData;
+    //         populateFilters();
+    //         restoreFilters();
+    //         updateChips();
+    //         updateNotifications();
+    //         if (document.getElementById('filterDaily').value) applyFilters();
+    //         else showEmpty('📅 اختر اليومية لعرض الشحنات');
+    //     } catch(err) {
+    //         console.error(err);
+    //         Swal.fire('خطأ', 'فشل تحميل الشحنات', 'error');
+    //     }
+    // }
+
     async function loadShipments() {
         try {
             var pageSize = 1000;
             var from = 0;
-            var allData = [];
+            var allLightData = [];
             while (true) {
-                var res = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS).select('*').order('m', { ascending: false }).range(from, from + pageSize - 1);
+                var res = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS)
+                    .select('اليومية,ارشيف,الزون,الراسل,المندوب,id,الحالة,"اسم العميل","كود الشحنة",الهاتف,"هاتف بديل",العنوان,المبلغ,"سبب الحالة"')
+                    .order('m', { ascending: false })
+                    .range(from, from + pageSize - 1);
                 if (res.error) throw res.error;
                 var chunk = res.data || [];
-                allData = allData.concat(chunk);
+                allLightData = allLightData.concat(chunk);
                 if (chunk.length < pageSize) break;
                 from += pageSize;
             }
-            allShipments = allData;
+            allDailyKeys = allLightData;
+            notifShipments = allLightData;
             populateFilters();
             restoreFilters();
             updateChips();
             updateNotifications();
-            if (document.getElementById('filterDaily').value) applyFilters();
+            if (document.getElementById('filterDaily').value) fetchDailyShipments(document.getElementById('filterDaily').value);
             else showEmpty('📅 اختر اليومية لعرض الشحنات');
         } catch(err) {
             console.error(err);
@@ -528,16 +562,60 @@
         return allShipments.filter(function(s) { return (s['اليومية'] || '') === daily; });
     }
 
+    async function fetchDailyShipments(daily) {
+        try {
+            var pageSize = 1000;
+            var from = 0;
+            var dailyData = [];
+            while (true) {
+                var res = await supabaseClient.from(CONFIG.TABLES.SHIPMENTS)
+                    .select('*')
+                    .eq('اليومية', daily)
+                    .order('m', { ascending: false })
+                    .range(from, from + pageSize - 1);
+                if (res.error) throw res.error;
+                var chunk = res.data || [];
+                dailyData = dailyData.concat(chunk);
+                if (chunk.length < pageSize) break;
+                from += pageSize;
+            }
+            allShipments = dailyData;
+            populateFilters();
+            applyFilters();
+        } catch(err) {
+            console.error(err);
+            Swal.fire('خطأ', 'فشل تحميل بيانات اليومية', 'error');
+        }
+    }
+
+    function onDailyChange() {
+        var daily = document.getElementById('filterDaily').value;
+        if (!daily) {
+            allShipments = [];
+            populateFilters();
+            scheduleFilter();
+            return;
+        }
+        fetchDailyShipments(daily);
+    }
+
     function populateFilters() {
         var dailyVal = document.getElementById('filterDaily').value;
         var archivedDailies = new Set();
-        var allDailies = [...new Set(allShipments.map(function(s) { return s['اليومية'] || ''; }).filter(Boolean))];
-        allDailies.forEach(function(d) {
-            var dailyShipments = allShipments.filter(function(s) { return (s['اليومية'] || '') === d; });
-            if (dailyShipments.length && dailyShipments.every(function(s) { return isArchivedVal(s); })) {
-                archivedDailies.add(d);
-            }
+
+        var allDailies = [...new Set(allDailyKeys.map(function(s) { return s['اليومية'] || ''; }).filter(Boolean))];
+
+        var dailyArchivedCount = {}, dailyTotalCount = {};
+        allDailyKeys.forEach(function(s) {
+            var d = s['اليومية'] || '';
+            if (!d) return;
+            dailyTotalCount[d] = (dailyTotalCount[d] || 0) + 1;
+            if (isArchivedVal(s)) dailyArchivedCount[d] = (dailyArchivedCount[d] || 0) + 1;
         });
+        allDailies.forEach(function(d) {
+            if (dailyArchivedCount[d] && dailyArchivedCount[d] === dailyTotalCount[d]) archivedDailies.add(d);
+        });
+
         var dailies = allDailies.filter(function(d) {
             if (repArchiveFilter === 'نشطة' && archivedDailies.has(d)) return false;
             if (repArchiveFilter === 'مؤرشفة' && !archivedDailies.has(d)) return false;
@@ -545,7 +623,7 @@
         }).sort();
 
         var dailyCounts = {};
-        allShipments.forEach(function(s) {
+        allDailyKeys.forEach(function(s) {
             var k = s['اليومية'] || '';
             if (!k) return;
             var isArchived = archivedDailies.has(k);
@@ -554,8 +632,10 @@
             dailyCounts[k] = (dailyCounts[k] || 0) + 1;
         });
 
+        setOptions('filterDaily', dailies, dailyCounts);
+
         if (!dailyVal) {
-            var base = allShipments.filter(function(s) { return !isArchivedVal(s); });
+            var base = allDailyKeys.filter(function(s) { return !isArchivedVal(s); });
             var zones = [...new Set(base.map(function(s) { return s['الزون'] || ''; }).filter(Boolean))].sort();
             var senders = [...new Set(base.map(function(s) { return s['الراسل'] || ''; }).filter(Boolean))].sort();
             var reps = [...new Set(base.map(function(s) { return s['المندوب'] || ''; }).filter(Boolean))].sort();
@@ -565,7 +645,6 @@
                 var sr = s['الراسل'] || ''; if (sr) senderCounts[sr] = (senderCounts[sr] || 0) + 1;
                 var rp = s['المندوب'] || ''; if (rp) repCounts[rp] = (repCounts[rp] || 0) + 1;
             });
-            setOptions('filterDaily', dailies, dailyCounts);
             setOptions('filterZone', zones, zoneCounts);
             setOptions('filterSender', senders, senderCounts);
             setOptions('filterRep', reps, repCounts);
@@ -589,7 +668,6 @@
             var rp = s['المندوب'] || ''; if (rp) repCounts[rp] = (repCounts[rp] || 0) + 1;
         });
 
-        setOptions('filterDaily', dailies, dailyCounts);
         setOptions('filterStatus', statuses, statusCounts);
         setOptions('filterZone', zones, zoneCounts);
         setOptions('filterSender', senders, senderCounts);
@@ -664,9 +742,10 @@
         scheduleFilter();
     }
 
-    function scheduleFilter() {
+    function scheduleFilter(resetPagination) {
         clearTimeout(filterTimer);
-        filterTimer = setTimeout(applyFilters, 200);
+        var _rp = resetPagination;
+        filterTimer = setTimeout(function() { applyFilters(_rp); }, 200);
     }
 
     function saveFilters() {
@@ -708,7 +787,8 @@
         document.getElementById('shipmentsContainer').innerHTML = '<div class="empty-state"><i class="fas fa-box-open text-4xl mb-3 opacity-50"></i><p class="font-bold">' + msg + '</p></div>';
     }
 
-    function applyFilters() {
+    function applyFilters(resetPagination) {
+        if (resetPagination !== false) renderedCount = PAGE_SIZE;
         saveFilters();
         var daily = document.getElementById('filterDaily').value;
         if (!daily) { showEmpty('📅 اختر اليومية لعرض الشحنات'); updateStats([]); updateStatActive(); return; }
@@ -786,18 +866,20 @@
     }
 
     function updateStats(dailyShipments) {
+        var _dismissed = getFollowupsDismissed();
+        var _sent = getFollowupsSent();
+        var _favs = getFavorites();
         var total = dailyShipments.length;
         var needsFollowup = dailyShipments.filter(function(s) {
-            return followupStatuses.includes(s['الحالة'] || '') && !getFollowupsDismissed()[String(s.id)];
+            return followupStatuses.includes(s['الحالة'] || '') && !_dismissed[String(s.id)];
         }).length;
         var followedUp = dailyShipments.filter(function(s) {
-            return !!getFollowupsSent()[String(s.id)];
+            return !!_sent[String(s.id)];
         }).length;
         document.getElementById('statTotal').textContent = enNum(total);
         document.getElementById('statNeedsFollowup').textContent = enNum(needsFollowup);
         document.getElementById('statFollowedUp').textContent = enNum(followedUp);
-        var favs = getFavorites();
-        var favCount = dailyShipments.filter(function(s) { return !!favs[String(s.id)]; }).length;
+        var favCount = dailyShipments.filter(function(s) { return !!_favs[String(s.id)]; }).length;
         document.getElementById('statFavorites').textContent = enNum(favCount);
         var pending = 0, noRep = 0, delivered = 0, priceEdit = 0, shipped = 0, cancelled = 0, postponed = 0;
         dailyShipments.forEach(function(s) {
@@ -825,16 +907,20 @@
             container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p class="font-bold">لا توجد شحنات مطابقة</p></div>';
             return;
         }
-        container.innerHTML = filteredShipments.map(function(s, idx) {
+        var _dismissed = getFollowupsDismissed();
+        var _sent = getFollowupsSent();
+        var _favs = getFavorites();
+        var visible = filteredShipments.slice(0, renderedCount);
+        container.innerHTML = visible.map(function(s, idx) {
             var sid = String(s.id);
-            var needsFollowup = followupStatuses.includes(s['الحالة'] || '') && !getFollowupsDismissed()[sid];
-            var followupSent = !!getFollowupsSent()[sid];
+            var needsFollowup = followupStatuses.includes(s['الحالة'] || '') && !_dismissed[sid];
+            var followupSent = !!_sent[sid];
             return '<div class="shipment-row">' +
                 '<div class="flex items-center justify-between">' +
                     '<div>' +
                         '<div class="main flex items-center gap-1">' +
                             '<span class="shipment-actions-bar"><span class="shipment-dots-btn" onclick="event.stopPropagation();copyShipmentDetails(' + idx + ')"><i class="fas fa-ellipsis-v"></i></span>' +
-                            '<button class="fav-btn" onclick="event.stopPropagation();toggleFavorite(\'' + sid + '\')"><i class="fa-' + (isFavorite(sid) ? 'solid' : 'regular') + ' fa-heart"></i></button></span>' +
+                            '<button class="fav-btn" onclick="event.stopPropagation();toggleFavorite(\'' + sid + '\')"><i class="fa-' + (!!_favs[sid] ? 'solid' : 'regular') + ' fa-heart"></i></button></span>' +
                             (needsFollowup ? (followupSent
                                 ? '<button class="followup-sent-card" onclick="event.stopPropagation();dismissFollowup(\'' + sid + '\')"><i class="fas fa-check-circle"></i> تم ارسال المتابعة</button>'
                                 : '<button class="followup-btn" onclick="event.stopPropagation();doFollowup(' + idx + ',\'' + sid + '\')"><i class="fab fa-whatsapp"></i></button>'
@@ -872,6 +958,15 @@
                 '</div>' +
             '</div>';
         }).join('');
+        if (filteredShipments.length > renderedCount) {
+            var remaining = filteredShipments.length - renderedCount;
+            container.innerHTML += '<button onclick="loadMoreShipments()" style="width:100%;padding:12px;margin-top:16px;border-radius:12px;background:var(--btn-primary,#6366f1);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;">تحميل المزيد (' + remaining + ' شحنة متبقية)</button>';
+        }
+    }
+
+    function loadMoreShipments() {
+        renderedCount += PAGE_SIZE;
+        renderShipments();
     }
 
     function copyShipmentDetails(idx) {
@@ -973,7 +1068,7 @@
         var phones = [s['الهاتف'] || '', s['هاتف بديل'] || ''].filter(Boolean);
         var obj = getFollowupsSent(); obj[sid] = true; localStorage.setItem(followerKey + '_sent', JSON.stringify(obj));
         var dismissed = getFollowupsDismissed(); dismissed[sid] = true; localStorage.setItem(followerKey + '_dismissed', JSON.stringify(dismissed));
-        applyFilters();
+        applyFilters(false);
         if (!phones.length) {
             Swal.fire({ icon: 'warning', title: 'لا يوجد رقم هاتف للمتابعة', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
             return;
@@ -1000,7 +1095,7 @@
         var dismissed = getFollowupsDismissed();
         dismissed[sid] = true;
         localStorage.setItem(followerKey + '_dismissed', JSON.stringify(dismissed));
-        applyFilters();
+        applyFilters(false);
     }
 
     loadShipments();
