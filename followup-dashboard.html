@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="light dark">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self';">
     <title>لوحة المتابعة | نظام الشحن</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class'}</script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -148,13 +149,16 @@
     </style>
 </head>
 <body class="dark">
+    <script>
+    (function(){var s=localStorage.getItem('shipment-theme');if(s==='light'){document.body.classList.remove('dark');document.body.classList.add('light');document.querySelector('meta[name="color-scheme"]').setAttribute('content','light');}})();
+    </script>
 
     <div class="max-w-5xl mx-auto p-2 sm:p-3">
 
     <!-- Header -->
     <div class="glass p-3 mb-3 flex items-center justify-between">
         <div class="font-extrabold text-base flex items-center gap-2">
-            <i class="fas fa-list-check header-icon"></i> لوحة المتابعة <span class="text-slate-400 text-sm font-normal mr-1" id="headerUserName"></span>
+            لوحة المتابعة <span class="text-slate-400 text-sm font-normal mr-1" id="headerUserName"></span>
         </div>
         <div class="flex gap-2 items-center">
             <div style="position:relative">
@@ -847,6 +851,7 @@
                             s['الحالة'] === 'الغاء' ? '#ef4444' :
                             s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? '#6366f1' : ''
                         ) + ' !important">' + (s['الحالة'] || '-') + '</div>' +
+                        (s['سبب الحالة'] ? '<div class="sub" style="font-size:.75rem;color:#94a3b8;margin-top:2px;"><i class="fas fa-info-circle ml-1"></i>' + enNum(s['سبب الحالة']) + '</div>' : '') +
                     '</div>' +
                 '</div>' +
                 '<div class="mt-2 text-sm text-slate-500 space-y-1.5">' +
@@ -856,7 +861,9 @@
                         '<span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span>' + enNum(s['الراسل'] || '-') + '</span>' +
                         '<span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">' + (['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة'] || '') && s['المدفوع'] != null && s['المدفوع'] !== '' ? enNum(s['المدفوع']) : enNum(s['المبلغ'] || '0')) + '</span></span>' +
                     '</div>' +
+                    (s['المندوب'] ? '<div><i class="fas fa-user ml-1.5"></i><span class="field-label">المندوب:</span>' + enNum(s['المندوب']) + '</div>' : '') +
                 '</div>' +
+                (s['ملاحظات'] ? '<div class="mt-1.5 text-sm text-slate-500"><i class="fas fa-sticky-note ml-1.5"></i><span class="field-label">ملاحظات:</span>' + enNum(s['ملاحظات']) + '</div>' : '') +
                 '<div class="action-btns">' +
                     '<div class="row">' +
                         '<button class="action-btn call" onclick="event.stopPropagation();showPhonesDialog(\'' + enNum(s['الهاتف'] || '') + '\',\'' + enNum(s['هاتف بديل'] || '') + '\')"><i class="fas fa-phone ml-1"></i> اتصال' + (s['الهاتف'] && s['هاتف بديل'] ? '<span class="badge-num">2</span>' : '') + '</button>' +

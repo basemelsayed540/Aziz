@@ -168,7 +168,10 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 mr-1">كلمة المرور</label>
-                    <input type="password" id="password" name="password" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base" placeholder="••••••••">
+                    <div class="relative">
+                        <input type="password" id="password" name="password" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base pl-12" placeholder="••••••••">
+                        <button type="button" onclick="toggleLoginPassword('password', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" style="background:none;border:none;padding:0;cursor:pointer;"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
 
                 <div class="flex items-center justify-between px-1">
@@ -220,11 +223,17 @@
                 </div>
                 <div>
                     <label for="signupPassword" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 mr-1">كلمة المرور</label>
-                    <input type="password" id="signupPassword" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base" placeholder="6 أحرف على الأقل">
+                    <div class="relative">
+                        <input type="password" id="signupPassword" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base pl-12" placeholder="6 أحرف على الأقل">
+                        <button type="button" onclick="toggleLoginPassword('signupPassword', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" style="background:none;border:none;padding:0;cursor:pointer;"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
                 <div>
                     <label for="signupPasswordConfirm" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 mr-1">تأكيد كلمة المرور</label>
-                    <input type="password" id="signupPasswordConfirm" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base" placeholder="أعد كتابة كلمة المرور">
+                    <div class="relative">
+                        <input type="password" id="signupPasswordConfirm" required class="input-field soft-auth-input text-slate-900 dark:text-white w-full py-4 px-4 text-base pl-12" placeholder="أعد كتابة كلمة المرور">
+                        <button type="button" onclick="toggleLoginPassword('signupPasswordConfirm', this)" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" style="background:none;border:none;padding:0;cursor:pointer;"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
 
                 <button type="submit" id="signupBtn" class="w-full py-4 auth-submit btn-primary flex items-center justify-center gap-2 text-xl font-black mt-4 active:scale-95 transition-transform">
@@ -431,6 +440,18 @@
                 signupBtn.innerHTML = '<span>إنشاء الحساب</span><i class="fas fa-user-plus"></i>';
             }
         });
+
+        function toggleLoginPassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
     </script>
 </body>
 </html>
