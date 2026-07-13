@@ -1079,6 +1079,20 @@
         [data-bs-theme="dark"] .card-cancel .toolbar-stat-icon { color: #fde047; }
         [data-bs-theme="dark"] .card-postponed .toolbar-stat-label,
         [data-bs-theme="dark"] .card-postponed .toolbar-stat-icon { color: #fdba74; }
+        .toolbar-stat-filter.active.card-total { background: color-mix(in srgb, #6366f1 12%, white); }
+        .toolbar-stat-filter.active.card-visible { background: color-mix(in srgb, #06b6d4 12%, white); }
+        .toolbar-stat-filter.active.card-nodelegate { background: color-mix(in srgb, #f59e0b 12%, white); }
+        .toolbar-stat-filter.active.card-mjash { background: color-mix(in srgb, #ef4444 12%, white); }
+        .toolbar-stat-filter.active.card-noamount { background: color-mix(in srgb, #f97316 12%, white); }
+        .toolbar-stat-filter.active.card-duplicate { background: color-mix(in srgb, #64748b 12%, white); }
+        .toolbar-stat-filter.active.card-warehouse { background: color-mix(in srgb, #d97706 12%, white); }
+        .toolbar-stat-filter.active.card-indelivery { background: color-mix(in srgb, #0891b2 12%, white); }
+        .toolbar-stat-filter.active.card-done { background: color-mix(in srgb, #10b981 12%, white); }
+        .toolbar-stat-filter.active.card-amended { background: color-mix(in srgb, #6366f1 12%, white); }
+        .toolbar-stat-filter.active.card-shipping { background: color-mix(in srgb, #6366f1 12%, white); }
+        .toolbar-stat-filter.active.card-reject { background: color-mix(in srgb, #ef4444 12%, white); }
+        .toolbar-stat-filter.active.card-cancel { background: color-mix(in srgb, #f59e0b 12%, white); }
+        .toolbar-stat-filter.active.card-postponed { background: color-mix(in srgb, #f97316 12%, white); }
         [data-bs-theme="dark"] .toolbar-stat-filter.active,
         .dark .toolbar-stat-filter.active { background: #0f172a; border-color: #0f172a; }
         [data-bs-theme="dark"] .toolbar-stat-filter.active .toolbar-stat-icon,
@@ -2459,13 +2473,9 @@
 
         .toolbar-stat-filter { cursor: pointer; }
         .toolbar-stat-filter.active {
-            background: #1e293b;
-            border-color: #1e293b;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        .toolbar-stat-filter.active .toolbar-stat-label,
-        .toolbar-stat-filter.active .toolbar-stat-value { color: #ffffff !important; }
-        .toolbar-stat-filter.active .toolbar-stat-icon { color: #ffffff !important; background: transparent !important; }
+        .toolbar-stat-filter.active .toolbar-stat-icon { background: transparent !important; }
 
         .toolbar-stat-label { display: block; font-size: 0.65rem; font-weight: 700; color: #64748b; margin-bottom: 1px; z-index: 2; }
         .toolbar-stat-value { display: block; font-size: 1rem; font-weight: 800; line-height: 1.2; color: #1e293b; z-index: 2; }
@@ -3001,7 +3011,7 @@
             padding: 0.375rem 0.75rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .gen-stats-filters-box select {
+        .gen-stats-filters-box select:not(.housing-toolbar-chip-select) {
             background: transparent;
             border: none;
             font-size: 0.85rem;
@@ -3010,7 +3020,7 @@
             outline: none;
             cursor: pointer;
         }
-        .gen-stats-filters-box select option {
+        .gen-stats-filters-box select:not(.housing-toolbar-chip-select) option {
             background: var(--card-bg);
             color: var(--text-color);
         }
@@ -3358,7 +3368,7 @@
                 <div id="navHousingInfo" class="ms-3 ps-3 border-start d-flex align-items-center gap-2"></div>
             </span>
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-light d-md-none me-2 py-1 px-2 border" type="button" data-bs-toggle="offcanvas"
+                <button class="btn btn-light d-md-none me-2 py-1 px-2 border admin-header-btn" type="button" data-bs-toggle="offcanvas"
                     data-bs-target="#mobileSidebar"><i class="fas fa-bars"></i></button>
                 <button onclick="openHousingChangesStatsModal()" class="btn btn-light rounded-circle shadow-sm admin-header-btn" title="احصائية التغيرات"><i
                         class="fas fa-chart-pie"></i></button>
@@ -3440,7 +3450,7 @@
         </aside>
 
         <!-- Sidebar Mobile Offcanvas -->
-        <div class="offcanvas offcanvas-end admin-offcanvas" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas offcanvas-start admin-offcanvas" tabindex="-1" id="mobileSidebar">
             <div class="offcanvas-header bg-primary text-white border-0">
                 <h5 class="offcanvas-title fw-bold">القائمة الجانبية</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
@@ -3605,13 +3615,10 @@
                             
                             <div class="gen-stats-filters-box">
                                 <span class="text-xs fw-bold text-muted me-1">اليومية:</span>
-                                <select id="genStatsDaily" onchange="handleGenStatsDailyChange()" dir="rtl">
+                                <select id="genStatsDaily" class="housing-toolbar-chip-select" onchange="handleGenStatsDailyChange()" dir="rtl">
                                     <option value="الكل">كل اليوميات</option>
                                 </select>
-                                <select id="genStatsArchiveSelect" onchange="handleGenStatsArchiveFilterChange()">
-                                    <option value="نشطة">نشطة (0)</option>
-                                    <option value="مؤرشفة">مؤرشفة (0)</option>
-                                </select>
+                                <button type="button" id="genStatsArchiveBtn" class="housing-toolbar-chip" onclick="toggleGenStatsArchiveFilter()">📁 النشطة (0)</button>
                             </div>
                         </div>
                     </div>
@@ -6529,7 +6536,8 @@
 
         // Global variables for General Stats Dashboard (copied from Project B)
         let genStatsSelectedDaily = localStorage.getItem('adminDailyFilter') || 'الكل';
-        let genStatsArchiveFilter = 'نشطة';
+        let genStatsArchiveFilter = localStorage.getItem('genStatsArchiveFilter') || 'نشطة';
+        let genStatsArchiveCounts = { active: 0, archived: 0 };
         let genStatsRepSearch = '';
         let genStatsCourierSortBy = 'شحنات-تنازلي';
         let genStatsCourierStatusFilter = null;
@@ -6564,9 +6572,6 @@
                     }
                     dailySelect.value = genStatsSelectedDaily;
                 }
-                
-                const archiveSelect = document.getElementById('genStatsArchiveSelect');
-                if (archiveSelect) archiveSelect.value = genStatsArchiveFilter;
                 
                 // Fetch shipments for selected daily
                 await fetchGenStatsShipments(genStatsSelectedDaily);
@@ -6691,16 +6696,12 @@
 
         function populateGenStatsDailyDropdown() {
             const dailySelect = document.getElementById('genStatsDaily');
-            const archiveSelect = document.getElementById('genStatsArchiveSelect');
             if (!dailySelect) return;
-            
             const activeList = genStatsDailyList.filter(d => !genStatsArchivedDailiesSet.has(d));
             const archivedList = genStatsDailyList.filter(d => genStatsArchivedDailiesSet.has(d));
             
-            if (archiveSelect) {
-                archiveSelect.options[0].text = `نشطة (${activeList.length})`;
-                archiveSelect.options[1].text = `مؤرشفة (${archivedList.length})`;
-            }
+            genStatsArchiveCounts = { active: activeList.length, archived: archivedList.length };
+            updateGenStatsArchiveFilterUI();
             
             const filteredDailies = genStatsArchiveFilter === 'نشطة' ? activeList : archivedList;
             
@@ -7019,11 +7020,27 @@
             }
         }
         
-        async function handleGenStatsArchiveFilterChange() {
-            const select = document.getElementById('genStatsArchiveSelect');
-            if (!select) return;
-            genStatsArchiveFilter = select.value;
-            
+        function updateGenStatsArchiveFilterUI() {
+            const btn = document.getElementById('genStatsArchiveBtn');
+            if (!btn) return;
+            const val = genStatsArchiveFilter || 'نشطة';
+            const counts = genStatsArchiveCounts || { active: 0, archived: 0 };
+            if (val === 'مؤرشفة') {
+                btn.textContent = `📁 المؤرشفة (${counts.archived})`;
+            } else {
+                btn.textContent = `📁 النشطة (${counts.active})`;
+            }
+            btn.classList.toggle('active', val === 'مؤرشفة');
+        }
+
+        function toggleGenStatsArchiveFilter() {
+            genStatsArchiveFilter = genStatsArchiveFilter === 'نشطة' ? 'مؤرشفة' : 'نشطة';
+            localStorage.setItem('genStatsArchiveFilter', genStatsArchiveFilter);
+            updateGenStatsArchiveFilterUI();
+            handleGenStatsArchiveFilterApply();
+        }
+
+        async function handleGenStatsArchiveFilterApply() {
             populateGenStatsDailyDropdown();
             
             genStatsSelectedDaily = 'الكل';
@@ -7111,7 +7128,7 @@
         window.loadGeneralStatsSection = loadGeneralStatsSection;
         window.refreshGeneralStatsData = refreshGeneralStatsData;
         window.handleGenStatsDailyChange = handleGenStatsDailyChange;
-        window.handleGenStatsArchiveFilterChange = handleGenStatsArchiveFilterChange;
+        window.toggleGenStatsArchiveFilter = toggleGenStatsArchiveFilter;
         window.handleGenStatsSortChange = handleGenStatsSortChange;
         window.handleGenStatsSearch = handleGenStatsSearch;
         window.toggleGenStatsCourierStatusFilter = toggleGenStatsCourierStatusFilter;
