@@ -466,10 +466,11 @@
       { key: 'sender', label: 'الراسل', icon: '🏢' },
     ];
     h += '<div class="grid grid-cols-6 gap-2">';
-    h += '<div data-filter-archive class="flex gap-2">';
-    h += '<button data-arch-val="نشطة" class="px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ' + (D.repArchiveFilter === 'نشطة' ? 'bg-primary text-white border-primary' : 'bg-bg-surface border-border-subtle text-text-muted hover:bg-black/5 dark:hover:bg-white/5') + '">📁 نشطة (' + archiveActive + ')</button>';
-    h += '<button data-arch-val="مؤرشفة" class="px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ' + (D.repArchiveFilter === 'مؤرشفة' ? 'bg-primary text-white border-primary' : 'bg-bg-surface border-border-subtle text-text-muted hover:bg-black/5 dark:hover:bg-white/5') + '">📁 مؤرشفة (' + archiveArchived + ')</button>';
-    h += '</div>';
+    var archActive = D.repArchiveFilter === 'نشطة';
+    var archLabel = archActive ? 'نشطة' : 'مؤرشفة';
+    var archCount = archActive ? archiveActive : archiveArchived;
+    var archColor = archActive ? 'bg-primary/20 border-primary text-primary' : 'bg-red-500/10 border-red-500/30 text-red-500';
+    h += '<button data-filter-archive class="text-center px-2.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ' + archColor + '">📁 ' + archLabel + ' (' + archCount + ')</button>';
 
     filterChips.forEach(function(fc) {
       var opts = filterOpts[fc.key] || [];

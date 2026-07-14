@@ -257,7 +257,7 @@
       if (dailySel) dailySel.addEventListener('change', function() { D.selectedDaily = this.value; localStorage.setItem('adminDailyFilter', D.selectedDaily); D.isLoading = true; _renderDashboardMain(); _fetchShipments(false, D.selectedDaily).then(function() { D.isLoading = false; _renderDashboardMain(); }); });
 
       var archSel = document.querySelector('[data-admin-archive]');
-      if (archSel) archSel.addEventListener('change', function() { D.archiveFilter = this.value; D.selectedDaily = 'الكل'; localStorage.setItem('adminArchiveFilter', D.archiveFilter); _renderDashboardMain(); });
+      if (archSel) archSel.addEventListener('click', function() { D.archiveFilter = D.archiveFilter === 'نشطة' ? 'مؤرشفة' : 'نشطة'; D.selectedDaily = 'الكل'; localStorage.setItem('adminArchiveFilter', D.archiveFilter); _renderDashboardMain(); });
 
       document.querySelectorAll('[data-status-filter]').forEach(function(el) {
         el.addEventListener('click', function() {
@@ -365,7 +365,7 @@
     if (toggleActions) toggleActions.addEventListener('click', function() { D.actionsHidden = !D.actionsHidden; localStorage.setItem('rep-actions-hidden', D.actionsHidden ? 'true' : 'false'); _renderDashboardMain(); });
 
     var archiveFilter = document.querySelector('[data-filter-archive]');
-    if (archiveFilter) archiveFilter.addEventListener('click', function(e) { var btn = e.target.closest('[data-arch-val]'); if (!btn) return; D.repArchiveFilter = btn.getAttribute('data-arch-val'); localStorage.setItem('repArchiveFilter', D.repArchiveFilter); D.filters.daily = ''; _saveFilters(); _renderDashboardMain(); });
+    if (archiveFilter) archiveFilter.addEventListener('click', function() { D.repArchiveFilter = D.repArchiveFilter === 'نشطة' ? 'مؤرشفة' : 'نشطة'; localStorage.setItem('repArchiveFilter', D.repArchiveFilter); D.filters.daily = ''; _saveFilters(); _renderDashboardMain(); });
 
     ['daily', 'rep', 'zone', 'sender'].forEach(function(key) {
       var sel = document.querySelector('[data-filter="' + key + '"]');

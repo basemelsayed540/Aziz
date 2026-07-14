@@ -240,10 +240,11 @@
       h += '<option value="' + day + '"' + (D.selectedDaily === day ? ' selected' : '') + ' class="bg-bg-surface text-text-main"' + sty + '>' + day + ' (' + cnt + ')</option>';
     });
     h += '</select>';
-    h += '<select data-admin-archive class="bg-transparent text-xs sm:text-sm text-text-main font-bold focus:outline-none cursor-pointer">';
-    h += '<option value="نشطة" class="bg-bg-surface text-text-main"' + (D.archiveFilter === 'نشطة' ? ' selected' : '') + '>نشطة (' + activeDays.length + ')</option>';
-    h += '<option value="مؤرشفة" class="bg-bg-surface text-text-main"' + (D.archiveFilter === 'مؤرشفة' ? ' selected' : '') + ' style="color:#ef4444">مؤرشفة (' + archivedDays.length + ')</option>';
-    h += '</select></div></div>';
+    var archActiveAdmin = D.archiveFilter === 'نشطة';
+    var archLabelAdmin = archActiveAdmin ? 'نشطة' : 'مؤرشفة';
+    var archCountAdmin = archActiveAdmin ? activeDays.length : archivedDays.length;
+    var archColorAdmin = archActiveAdmin ? 'bg-primary/20 border-primary text-primary' : 'bg-red-500/10 border-red-500/30 text-red-500';
+    h += '<button data-admin-archive class="text-center px-2.5 py-1.5 rounded-xl border text-xs sm:text-sm font-bold transition-all cursor-pointer ' + archColorAdmin + '">' + archLabelAdmin + ' (' + archCountAdmin + ')</button></div></div>';
 
     var totalAll = D.selectedDaily === 'الكل' ? null : filtered.length;
     var noRepCount = (D.selectedDaily === 'الكل' ? D.shipments : filtered).filter(function(s) { return !(s['المندوب'] || '').trim(); }).length;
