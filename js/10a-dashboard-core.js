@@ -75,10 +75,28 @@
 
   function _restoreFilters() {
     var saved = localStorage.getItem('repFilters');
-    if (saved) { try { var p = JSON.parse(saved); D.filters = { status: p.status === 'الكل' ? '' : (p.status || ''), search: p.search || '', daily: p.daily || '', zone: p.zone || '', sender: p.sender || '', rep: p.rep || '' }; } catch(e) {} }
+    if (saved) { try { var p = JSON.parse(saved); D.filters = { status: p.status === 'الكل' ? '' : (p.status || ''), search: p.search || '', daily: p.daily || '', zone: p.zone || '', sender: p.sender || '', rep: p.rep || '' }; D.filterNoRep = !!p.filterNoRep; } catch(e) {} }
   }
 
-  function _saveFilters() { localStorage.setItem('repFilters', JSON.stringify(D.filters)); }
+  function _saveFilters() { localStorage.setItem('repFilters', JSON.stringify(Object.assign({}, D.filters, { filterNoRep: D.filterNoRep }))); }
+
+  function _saveAdminFilters() {
+    localStorage.setItem('adminFilters', JSON.stringify({
+      courierStatusFilter: D.courierStatusFilter,
+      adminRepSearch: D.adminRepSearch
+    }));
+  }
+
+  function _restoreAdminFilters() {
+    var saved = localStorage.getItem('adminFilters');
+    if (saved) {
+      try {
+        var p = JSON.parse(saved);
+        D.courierStatusFilter = p.courierStatusFilter || null;
+        D.adminRepSearch = p.adminRepSearch || '';
+      } catch(e) {}
+    }
+  }
 
   async function _fetchShipments(hideLoading, daily) {
     var user = Auth.user;
@@ -184,6 +202,8 @@
     root_html += '</div>';
 
     root.innerHTML = root_html;
+    _restoreFilters();
+    _restoreAdminFilters();
     _renderDashboardMain();
 
     document.getElementById('dash-theme').addEventListener('click', function() { Theme.toggle(); renderDashboard(); });
@@ -269,18 +289,19 @@
         el.addEventListener('click', function() {
           var key = this.getAttribute('data-status-filter');
           D.courierStatusFilter = D.courierStatusFilter === key ? null : key;
+          _saveAdminFilters();
           _renderDashboardMain();
         });
       });
 
       var clearBtn = document.querySelector('[data-clear-cfilter]');
-      if (clearBtn) clearBtn.addEventListener('click', function(e) { e.stopPropagation(); D.courierStatusFilter = null; _renderDashboardMain(); });
+      if (clearBtn) clearBtn.addEventListener('click', function(e) { e.stopPropagation(); D.courierStatusFilter = null; _saveAdminFilters(); _renderDashboardMain(); });
 
       var sortSel = document.querySelector('[data-courier-sort]');
       if (sortSel) sortSel.addEventListener('change', function() { D.courierSortBy = this.value; _renderDashboardMain(); });
 
       var repSearch = document.querySelector('[data-admin-rep-search]');
-      if (repSearch) { var _rST; repSearch.addEventListener('input', function() { var self = this; D.adminRepSearch = self.value; clearTimeout(_rST); _rST = setTimeout(function() { _renderDashboardMain(); var el = document.querySelector('[data-admin-rep-search]'); if (el) { el.focus(); el.setSelectionRange(self.value.length, self.value.length); } }, 250); }); }
+      if (repSearch) { var _rST; repSearch.addEventListener('input', function() { var self = this; D.adminRepSearch = self.value; clearTimeout(_rST); _rST = setTimeout(function() { _saveAdminFilters(); _renderDashboardMain(); var el = document.querySelector('[data-admin-rep-search]'); if (el) { el.focus(); el.setSelectionRange(self.value.length, self.value.length); } }, 250); }); }
 
       document.querySelectorAll('[data-toggle-courier]').forEach(function(el) {
         el.addEventListener('click', function() {

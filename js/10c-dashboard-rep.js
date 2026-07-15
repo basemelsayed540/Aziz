@@ -626,12 +626,19 @@
     if (_isArchived(shipment)) { Toast.error('لا يمكن تعديل شحنة مؤرشفة'); return; }
     var reasons = ['مؤجل غداً', 'مؤجل الأحد أو الاثنين', 'مؤجل الاربع أو الخميس أو الجمعه'];
     var colors = ['border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400', 'border-orange-400 bg-orange-500/10 text-orange-600 dark:text-orange-400', 'border-yellow-400 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'];
-    var content = '<div class="grid grid-cols-1 gap-2">';
+    var content = '<div class="grid grid-cols-1 gap-2" id="pd-reasons-list">';
     reasons.forEach(function(r, i) {
       content += '<button data-postpone-reason="' + escHtml(r) + '" class="p-3 rounded-xl border-2 cursor-pointer text-center font-bold text-sm transition-colors hover:bg-opacity-20 ' + colors[i] + '">⏰ ' + escHtml(r) + '</button>';
     });
+    content += '<button data-postpone-other class="p-3 rounded-xl border-2 cursor-pointer text-center font-bold text-sm transition-colors border-slate-400 bg-slate-500/10 text-slate-600 dark:text-slate-400 hover:bg-opacity-20">✏️ سبب آخر</button>';
+    content += '</div>';
+    content += '<div id="pd-other-box" class="hidden mt-3 text-right">';
+    content += '<label class="text-sm font-bold text-text-muted mb-1 block">اكتب السبب</label>';
+    content += '<textarea data-postpone-other-text rows="3" class="w-full p-2.5 rounded-xl border border-border-strong bg-bg-main text-text-main text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="اكتب سبب التأجيل هنا..."></textarea>';
+    content += '<button data-postpone-other-confirm class="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors">تأكيد</button>';
     content += '</div>';
     _showDialog('اختر سبب التأجيل', content);
+
     document.querySelectorAll('[data-postpone-reason]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var reason = this.getAttribute('data-postpone-reason');
@@ -639,18 +646,47 @@
         _updateStatus(shipment, 'مؤجل', { 'سبب الحالة': reason });
       });
     });
+
+    var otherBtn = document.querySelector('[data-postpone-other]');
+    var otherBox = document.getElementById('pd-other-box');
+    var reasonsList = document.getElementById('pd-reasons-list');
+    if (otherBtn) {
+      otherBtn.addEventListener('click', function() {
+        reasonsList.classList.add('hidden');
+        otherBox.classList.remove('hidden');
+        var textEl = document.querySelector('[data-postpone-other-text]');
+        if (textEl) textEl.focus();
+      });
+    }
+    var confirmOtherBtn = document.querySelector('[data-postpone-other-confirm]');
+    if (confirmOtherBtn) {
+      confirmOtherBtn.addEventListener('click', function() {
+        var textEl = document.querySelector('[data-postpone-other-text]');
+        var reason = textEl ? textEl.value.trim() : '';
+        if (!reason) { Toast.error('يرجى كتابة السبب'); return; }
+        _closeDialog();
+        _updateStatus(shipment, 'مؤجل', { 'سبب الحالة': reason });
+      });
+    }
   }
 
   function _showRejectDialog(shipment) {
     if (_isArchived(shipment)) { Toast.error('لا يمكن تعديل شحنة مؤرشفة'); return; }
     var reasons = ['العميل طلب الالغاء', 'العميل مسافر', 'المنطقه خارج نطاق التوصيل', 'العنوان غير صحيح', 'المنتج غير مطابق', 'المنتج تالف', 'تهرب بعد التنسيق', 'رقم الموبيل او الواتساب غير صحيح'];
     var colors = ['border-pink-400 bg-pink-500/10 text-pink-600 dark:text-pink-400', 'border-orange-400 bg-orange-500/10 text-orange-600 dark:text-orange-400', 'border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400', 'border-sky-400 bg-sky-500/10 text-sky-600 dark:text-sky-400', 'border-purple-400 bg-purple-500/10 text-purple-600 dark:text-purple-400', 'border-rose-400 bg-rose-500/10 text-rose-600 dark:text-rose-400', 'border-teal-400 bg-teal-500/10 text-teal-600 dark:text-teal-400', 'border-yellow-400 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'];
-    var content = '<div class="grid grid-cols-1 gap-1.5">';
+    var content = '<div class="grid grid-cols-1 gap-1.5" id="pr-reasons-list">';
     reasons.forEach(function(r, i) {
       content += '<button data-reject-reason="' + escHtml(r) + '" class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm transition-colors hover:bg-opacity-20 ' + colors[i] + '">❌ ' + escHtml(r) + '</button>';
     });
+    content += '<button data-reject-other class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm transition-colors border-slate-400 bg-slate-500/10 text-slate-600 dark:text-slate-400 hover:bg-opacity-20">✏️ سبب آخر</button>';
+    content += '</div>';
+    content += '<div id="pr-other-box" class="hidden mt-3 text-right">';
+    content += '<label class="text-sm font-bold text-text-muted mb-1 block">اكتب السبب</label>';
+    content += '<textarea data-reject-other-text rows="3" class="w-full p-2.5 rounded-xl border border-border-strong bg-bg-main text-text-main text-sm font-bold focus:outline-none focus:ring-2 focus:ring-rose-400" placeholder="اكتب سبب الرفض هنا..."></textarea>';
+    content += '<button data-reject-other-confirm class="w-full mt-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer transition-colors">تأكيد</button>';
     content += '</div>';
     _showDialog('اختر سبب الرفض', content);
+
     document.querySelectorAll('[data-reject-reason]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var reason = this.getAttribute('data-reject-reason');
@@ -658,6 +694,28 @@
         _updateStatus(shipment, 'الغاء', { 'سبب الحالة': reason });
       });
     });
+
+    var otherBtn = document.querySelector('[data-reject-other]');
+    var otherBox = document.getElementById('pr-other-box');
+    var reasonsList = document.getElementById('pr-reasons-list');
+    if (otherBtn) {
+      otherBtn.addEventListener('click', function() {
+        reasonsList.classList.add('hidden');
+        otherBox.classList.remove('hidden');
+        var textEl = document.querySelector('[data-reject-other-text]');
+        if (textEl) textEl.focus();
+      });
+    }
+    var confirmOtherBtn = document.querySelector('[data-reject-other-confirm]');
+    if (confirmOtherBtn) {
+      confirmOtherBtn.addEventListener('click', function() {
+        var textEl = document.querySelector('[data-reject-other-text]');
+        var reason = textEl ? textEl.value.trim() : '';
+        if (!reason) { Toast.error('يرجى كتابة السبب'); return; }
+        _closeDialog();
+        _updateStatus(shipment, 'الغاء', { 'سبب الحالة': reason });
+      });
+    }
   }
 
   var _peMode = 'تعديل سعر';
