@@ -147,6 +147,35 @@
     } catch(e) { Toast.error('حدث خطأ أثناء التحديث'); console.error(e); }
   }
 
+  function _showWAAppChoiceFollowup(shipment) {
+    var msg = _buildWAMsg(shipment);
+    var content = '<div class="grid grid-cols-1 gap-2">';
+    content += '<button data-wa-app="regular" class="block w-full p-4 rounded-xl border-2 text-center font-bold text-lg border-emerald-400 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 cursor-pointer">واتساب</button>';
+    content += '<button data-wa-app="business" class="block w-full p-4 rounded-xl border-2 text-center font-bold text-lg border-purple-400 bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 cursor-pointer">واتساب أعمال</button>';
+    content += '</div>';
+    _showDialog('اختر تطبيق واتساب', content);
+    document.querySelectorAll('[data-wa-app]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var app = btn.getAttribute('data-wa-app');
+        _closeDialog();
+        _openFollowupWhatsApp(app, msg);
+      });
+    });
+  }
+
+  function _openFollowupWhatsApp(app, msg) {
+    navigator.clipboard.writeText(msg).then(function() {
+      Toast.success('تم نسخ رسالة المتابعة، الصقها بعد اختيار المحادثة');
+    }).catch(function() {});
+    var isAndroid = /android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      var pkg = app === 'business' ? 'com.whatsapp.w4b' : 'com.whatsapp';
+      window.location.href = 'intent://send/#Intent;package=' + pkg + ';scheme=whatsapp;end';
+    } else {
+      window.open('https://api.whatsapp.com/send', '_blank');
+    }
+  }
+
   function _doFollowup(shipment) {
     var sid = String(shipment.id || shipment.m);
     var sent = _getFollowupsSent();
@@ -160,11 +189,7 @@
     _rerenderDashboard();
     var phones = [shipment['الهاتف'] || '', shipment['هاتف بديل'] || ''].filter(Boolean);
     if (!phones.length) { Toast.error('لا يوجد رقم هاتف للمتابعة'); return; }
-    if (phones.length === 1) {
-      window.open('https://api.whatsapp.com/send?phone=' + _formatPhoneWA(phones[0]) + '&text=' + _buildWAMsg(shipment), '_blank');
-      return;
-    }
-    _showWADialog(shipment);
+    _showWAAppChoiceFollowup(shipment);
   }
 
   function _dismissFollowup(shipment) {
