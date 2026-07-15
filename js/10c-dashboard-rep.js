@@ -18,6 +18,15 @@
     return '20' + d;
   }
 
+  function _dailyToSortVal(d) {
+    var parts = d.split('/');
+    if (parts.length !== 3) return 0;
+    var day = parseInt(parts[0], 10) || 0;
+    var month = parseInt(parts[1], 10) || 0;
+    var year = parseInt(parts[2], 10) || 0;
+    return year * 10000 + month * 100 + day;
+  }
+
   function _isFav(id) {
     var raw = localStorage.getItem('repFavorites');
     var favs = raw ? JSON.parse(raw) : {};
@@ -148,7 +157,7 @@
     dismissed[sid] = true;
     var key2 = (Auth.user && Auth.user.role === 'follower') ? _getFollowerKey('dismissed') : 'repFollowupsDismissed';
     localStorage.setItem(key2, JSON.stringify(dismissed));
-    _refreshDashboard();
+    _rerenderDashboard();
     var phones = [shipment['الهاتف'] || '', shipment['هاتف بديل'] || ''].filter(Boolean);
     if (!phones.length) { Toast.error('لا يوجد رقم هاتف للمتابعة'); return; }
     if (phones.length === 1) {
@@ -164,13 +173,16 @@
     dismissed[sid] = true;
     var key = (Auth.user && Auth.user.role === 'follower') ? _getFollowerKey('dismissed') : 'repFollowupsDismissed';
     localStorage.setItem(key, JSON.stringify(dismissed));
-    _refreshDashboard();
+    _rerenderDashboard();
   }
 
   async function _refreshDashboard() {
     await _fetchShipments(true);
     _renderDashboardMain();
-    _bindDashboardEvents();
+  }
+
+  function _rerenderDashboard() {
+    _renderDashboardMain();
   }
 
   function _startPolling() {
@@ -212,7 +224,11 @@
     }, 60000);
   }
 
-  function _renderShipmentCard(s) {
+  function _renderShipmentCard(s, opts) {
+    opts = opts || {};
+    var _favs = opts.favs || {};
+    var _followupsSent = opts.followupsSent || {};
+    var _repFilters = opts.repFilters || {};
     var sid = String(s.id || s.m);
     var st = _normalizeStatus(s);
     var bdrColor = STATUS_COLORS[st] || '';
@@ -220,12 +236,9 @@
     var isArch = _isArchived(s);
     var hideActs = HIDE_ACTION_STATUSES.includes(st) || isArch || (Auth.user && Auth.user.role === 'follower');
     var canFav = !isArch && ['قيد التوصيل', 'مؤجل'].includes(st);
-    var saved = localStorage.getItem('repFilters');
-    var isFollowupFilter = false;
-    try { if (saved) { var pp = JSON.parse(saved); isFollowupFilter = pp.status === 'بحاجة لمتابعة'; } } catch(e) {}
+    var isFollowupFilter = _repFilters.status === 'بحاجة لمتابعة';
     var needsFollowup = isFollowupFilter && FOLLOWUP_STATUSES.includes(st);
-    var sent = _getFollowupsSent();
-    var followupSent = !!sent[sid];
+    var followupSent = !!_followupsSent[sid];
     var phones = [s['الهاتف'] || '', s['هاتف بديل'] || ''].filter(Boolean);
     var hasMulti = phones.length > 1;
     var showAmt = ['تم', 'تم التسليم', 'تعديل سعر', 'شحن', 'استلم جزئي'].includes(st) && s['المدفوع'] != null && s['المدفوع'] !== '';
@@ -244,7 +257,7 @@
     html += '<span class="flex items-center gap-1">';
     html += '<button data-action="copy" class="text-text-muted hover:text-text-main transition-colors p-1 cursor-pointer" title="نسخ التفاصيل">' + icon('copy', 'w-6 h-6') + '</button>';
     if (canFav) {
-      var fav = _isFav(sid);
+      var fav = !!_favs[sid];
       html += '<button data-action="fav" class="transition-colors p-1 cursor-pointer ' + (fav ? 'text-red-500' : 'text-text-muted hover:text-red-400') + '" title="' + (fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة') + '">' + icon('heart', 'w-6 h-6') + '</button>';
     }
     html += '</span>';
@@ -299,7 +312,7 @@
     D.shipments.forEach(function(s) { var d = (s['اليومية'] || '').trim(); if (d) allDailySet.add(d); });
     var dailyWithAllowed = new Set();
     D.shipments.filter(function(s) { return allowedStatuses.has((s['الحالة'] || '').trim()); }).forEach(function(s) { var d = (s['اليومية'] || '').trim(); if (d) dailyWithAllowed.add(d); });
-    var dailies = Array.from(allDailySet).filter(function(d) { return dailyWithAllowed.has(d) && ((D.repArchiveFilter === 'نشطة' && !archivedDailiesSet.has(d)) || (D.repArchiveFilter === 'مؤرشفة' && archivedDailiesSet.has(d))); }).sort(function(a, b) { return b.localeCompare(a); });
+    var dailies = Array.from(allDailySet).filter(function(d) { return dailyWithAllowed.has(d) && ((D.repArchiveFilter === 'نشطة' && !archivedDailiesSet.has(d)) || (D.repArchiveFilter === 'مؤرشفة' && archivedDailiesSet.has(d))); }).sort(function(a, b) { return _dailyToSortVal(b) - _dailyToSortVal(a); });
 
     var dailyBase = [];
     if (D.filters.daily) dailyBase = D.shipments.filter(function(s) { return (s['اليومية'] || '').trim() === D.filters.daily; });
@@ -465,18 +478,18 @@
       { key: 'zone', label: 'الزون', icon: '📍' },
       { key: 'sender', label: 'الراسل', icon: '🏢' },
     ];
-    h += '<div class="grid grid-cols-6 gap-2">';
+    h += '<div class="grid grid-cols-4 gap-2">';
     var archActive = D.repArchiveFilter === 'نشطة';
     var archLabel = archActive ? 'نشطة' : 'مؤرشفة';
     var archCount = archActive ? archiveActive : archiveArchived;
     var archColor = archActive ? 'bg-primary/20 border-primary text-primary' : 'bg-red-500/10 border-red-500/30 text-red-500';
-    h += '<button data-filter-archive class="text-center px-2.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ' + archColor + '">📁 ' + archLabel + ' (' + archCount + ')</button>';
+    h += '<button data-filter-archive class="min-w-0 text-center px-2.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ' + archColor + '">📁 ' + archLabel + ' (' + archCount + ')</button>';
 
     filterChips.forEach(function(fc) {
       var opts = filterOpts[fc.key] || [];
       var curVal = D.filters[fc.key];
       var selCls = curVal ? 'bg-primary/20 border-primary text-primary' : 'bg-bg-surface border-border-subtle text-text-muted hover:bg-black/5 dark:hover:bg-white/5';
-      h += '<select data-filter="' + fc.key + '" class="text-center px-1 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer appearance-none ' + selCls + '" dir="rtl">';
+      h += '<select data-filter="' + fc.key + '" class="min-w-0 text-center px-1 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer appearance-none ' + selCls + '" dir="rtl">';
       h += '<option value="" class="bg-bg-surface text-text-muted">' + fc.icon + ' ' + fc.label + '</option>';
       opts.forEach(function(opt) {
         var cnt = (filterCounts[fc.key] || {})[opt];
@@ -491,7 +504,7 @@
     h += '<div class="mb-4"><span class="text-text-muted text-sm font-medium">النتائج: <span class="text-text-main font-bold">' + filteredShipments.length + '</span> شحنة</span></div>';
     h += '<div class="flex flex-col gap-4" id="cards-container">';
     if (displayed.length > 0) {
-      displayed.forEach(function(s) { h += _renderShipmentCard(s); });
+      displayed.forEach(function(s) { h += _renderShipmentCard(s, { favs: favs, followupsSent: followupsSent, repFilters: D.filters }); });
     } else {
       h += '<div class="bg-bg-surface rounded-2xl p-8 border border-border-subtle text-center flex flex-col items-center">' + icon('box', 'w-12 h-12 text-text-muted mb-3') + '<p class="text-text-main font-medium text-lg">' + (!D.filters.daily ? 'اختر اليومية لعرض الشحنات' : 'لا توجد شحنات مطابقة') + '</p><p class="text-text-muted text-sm mt-1">' + (!D.filters.daily ? '' : 'حاول تغيير معايير البحث أو تحديث الصفحة') + '</p></div>';
     }
@@ -539,7 +552,7 @@
           e.stopPropagation();
           var action = this.getAttribute('data-action');
           if (action === 'copy') _copyDetails(shipment);
-          else if (action === 'fav') { _toggleFav(sid); _refreshDashboard(); }
+          else if (action === 'fav') { _toggleFav(sid); _rerenderDashboard(); }
           else if (action === 'done') _updateStatus(shipment, 'تم');
           else if (action === 'followup') _doFollowup(shipment);
           else if (action === 'dismiss-followup') _dismissFollowup(shipment);
