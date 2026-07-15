@@ -433,47 +433,59 @@
       _archiveStatsCache = { data: data, timestamp: now };
     } catch (e) {
       console.warn('RPC get_archive_* failed, falling back to client-side computation', e);
-      _fetchArchiveStatsLegacy();
+      await _fetchArchiveStatsLegacy();
     }
   }
 
-  function _fetchArchiveStatsLegacy() {
-    var archived = D.shipments.filter(function(s) { var v = (s['ارشيف'] || '').toString().trim(); return v && v !== 'false' && v !== '0'; });
-    var statusCounts = {};
-    var totalPaid = 0, totalComm = 0;
-    archived.forEach(function(s) {
-      var st = (s['الحالة'] || '').trim();
-      if (st === 'إلغاء') st = 'الغاء';
-      statusCounts[st] = (statusCounts[st] || 0) + 1;
-      var eligible = st === 'تم' || st === 'تعديل سعر' || st === 'شحن';
-      if (eligible) { totalPaid += Number(s['المدفوع'] || 0); totalComm += Number(s['عمولة المندوب'] || 0); }
-    });
-    var summary = Object.keys(statusCounts).map(function(st) {
-      var paid = 0, comm = 0;
-      archived.forEach(function(s) { var ss = (s['الحالة'] || '').trim(); if (ss === 'إلغاء') ss = 'الغاء'; if (ss === st && (ss === 'تم' || ss === 'تعديل سعر' || ss === 'شحن')) { paid += Number(s['المدفوع'] || 0); comm += Number(s['عمولة المندوب'] || 0); } });
-      return { status: st, cnt: statusCounts[st], paid_sum: paid, commission_sum: comm };
-    });
-    var dailyMap = {};
-    archived.forEach(function(s) {
-      var d = (s['اليومية'] || '').trim(); if (!d) return;
-      if (!dailyMap[d]) dailyMap[d] = { cnt: 0, paid: 0, comm: 0 };
-      dailyMap[d].cnt++;
-      var st = (s['الحالة'] || '').trim(); if (st === 'إلغاء') st = 'الغاء';
-      if (st === 'تم' || st === 'تعديل سعر' || st === 'شحن') { dailyMap[d].paid += Number(s['المدفوع'] || 0); dailyMap[d].comm += Number(s['عمولة المندوب'] || 0); }
-    });
-    var daily = Object.keys(dailyMap).map(function(d) { return { 'اليومية': d, cnt: dailyMap[d].cnt, remittance: dailyMap[d].paid - dailyMap[d].comm }; });
-    var repMap = {};
-    archived.forEach(function(s) {
-      var r = (s['المندوب'] || '').trim() || 'غير محدد';
-      if (!repMap[r]) repMap[r] = { cnt: 0, comm: 0, paid: 0 };
-      repMap[r].cnt++;
-      var st = (s['الحالة'] || '').trim(); if (st === 'إلغاء') st = 'الغاء';
-      if (st === 'تم' || st === 'تعديل سعر' || st === 'شحن') { repMap[r].comm += Number(s['عمولة المندوب'] || 0); repMap[r].paid += Number(s['المدفوع'] || 0); }
-    });
-    var reps = Object.keys(repMap).map(function(r) { return { 'المندوب': r, cnt: repMap[r].cnt, commission: repMap[r].comm, remittance: repMap[r].paid - repMap[r].comm }; }).sort(function(a, b) { return b.cnt - a.cnt; });
-    var data = { summary: summary, daily: daily, reps: reps };
-    D.archiveStats = data;
-    _archiveStatsCache = { data: data, timestamp: Date.now() };
+  async function _fetchArchiveStatsLegacy() {
+    try {
+      var tables = getTableNames();
+      var pageSize = 1000;
+      var allArchived = [];
+      for (var start = 0; ; start += pageSize) {
+        var result = await supabaseClient.from(tables.invoices).select('اليومية, ارشيف, الحالة, المدفوع, "عمولة المندوب", المندوب').not('ارشيف', 'is', null).range(start, start + pageSize - 1);
+        if (!result.data || result.data.length === 0) break;
+        result.data.forEach(function(s) {
+          var v = (s['ارشيف'] || '').toString().trim();
+          if (v && v !== 'false' && v !== '0') allArchived.push(s);
+        });
+        if (result.data.length < pageSize) break;
+      }
+      var statusCounts = {};
+      var totalPaid = 0, totalComm = 0;
+      allArchived.forEach(function(s) {
+        var st = (s['الحالة'] || '').trim();
+        if (st === 'إلغاء') st = 'الغاء';
+        statusCounts[st] = (statusCounts[st] || 0) + 1;
+        var eligible = st === 'تم' || st === 'تعديل سعر' || st === 'شحن';
+        if (eligible) { totalPaid += Number(s['المدفوع'] || 0); totalComm += Number(s['عمولة المندوب'] || 0); }
+      });
+      var summary = Object.keys(statusCounts).map(function(st) {
+        var paid = 0, comm = 0;
+        allArchived.forEach(function(s) { var ss = (s['الحالة'] || '').trim(); if (ss === 'إلغاء') ss = 'الغاء'; if (ss === st && (ss === 'تم' || ss === 'تعديل سعر' || ss === 'شحن')) { paid += Number(s['المدفوع'] || 0); comm += Number(s['عمولة المندوب'] || 0); } });
+        return { status: st, cnt: statusCounts[st], paid_sum: paid, commission_sum: comm };
+      });
+      var dailyMap = {};
+      allArchived.forEach(function(s) {
+        var d = (s['اليومية'] || '').trim(); if (!d) return;
+        if (!dailyMap[d]) dailyMap[d] = { cnt: 0, paid: 0, comm: 0 };
+        dailyMap[d].cnt++;
+        var st = (s['الحالة'] || '').trim(); if (st === 'إلغاء') st = 'الغاء';
+        if (st === 'تم' || st === 'تعديل سعر' || st === 'شحن') { dailyMap[d].paid += Number(s['المدفوع'] || 0); dailyMap[d].comm += Number(s['عمولة المندوب'] || 0); }
+      });
+      var daily = Object.keys(dailyMap).map(function(d) { return { 'اليومية': d, cnt: dailyMap[d].cnt, remittance: dailyMap[d].paid - dailyMap[d].comm }; });
+      var repMap = {};
+      allArchived.forEach(function(s) {
+        var r = (s['المندوب'] || '').trim() || 'غير محدد';
+        if (!repMap[r]) repMap[r] = { cnt: 0, comm: 0, paid: 0 };
+        repMap[r].cnt++;
+        var st = (s['الحالة'] || '').trim(); if (st === 'إلغاء') st = 'الغاء';
+        if (st === 'تم' || st === 'تعديل سعر' || st === 'شحن') { repMap[r].comm += Number(s['عمولة المندوب'] || 0); repMap[r].paid += Number(s['المدفوع'] || 0); }
+      });
+      var reps = Object.keys(repMap).map(function(r) { return { 'المندوب': r, cnt: repMap[r].cnt, commission: repMap[r].comm, remittance: repMap[r].paid - repMap[r].comm }; }).sort(function(a, b) { return b.cnt - a.cnt; });
+      var data = { summary: summary, daily: daily, reps: reps };
+      D.archiveStats = data;
+    } catch (e) { console.error('Legacy archive stats fetch failed', e); }
   }
 
   function _renderArchiveDonutChart(statusCounts) {
@@ -489,7 +501,6 @@
       svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + colors[key] + '" stroke-width="18" stroke-dasharray="' + dash + ' ' + circumference + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
       offset += dash;
     });
-    svg += '<text x="70" y="75" text-anchor="middle" class="font-black text-text-main" font-size="18">' + total + '</text>';
     svg += '</svg>';
     return svg;
   }
@@ -586,27 +597,7 @@
 
     h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
     h += '<h3 class="text-xs font-bold text-text-main mb-3 flex items-center gap-2">' + icon('box', 'w-3.5 h-3.5 text-primary') + ' ملخص عام</h3>';
-    h += '<div class="grid grid-cols-2 gap-2 mb-3">';
-    h += '<div class="p-2 rounded-lg bg-gradient-to-l from-primary/15 to-primary/5 border border-primary/20 text-center"><span class="text-[10px] font-bold text-primary/80 flex items-center justify-center gap-1 mb-0.5">' + icon('bar-chart', 'w-3 h-3') + ' الشحنات المؤرشفة</span><span class="text-sm font-black text-primary">' + totalCount + '</span></div>';
-    h += '<div class="p-2 rounded-lg bg-gradient-to-l from-sky-500/15 to-sky-500/5 border border-sky-500/20 text-center"><span class="text-[10px] font-bold text-sky-500/80 flex items-center justify-center gap-1 mb-0.5">التوريد</span><span class="text-sm font-black text-sky-500">' + totalRemittance.toLocaleString() + '</span></div>';
-    h += '</div>';
-    h += '<div class="grid grid-cols-3 gap-2 mb-3">';
-    h += '<div class="p-2 rounded-lg border border-blue-500/10 bg-blue-500/5 text-center"><span class="text-[10px] block mb-0.5 font-bold text-blue-500">المدفوع</span><span class="text-xs font-extrabold text-blue-500">' + totalPaid.toLocaleString() + '</span></div>';
-    h += '<div class="p-2 rounded-lg border border-amber-500/10 bg-amber-500/5 text-center"><span class="text-[10px] block mb-0.5 font-bold text-amber-500">عمولة المندوب</span><span class="text-xs font-extrabold text-amber-500">' + totalComm.toLocaleString() + '</span></div>';
-    h += '<div class="p-2 rounded-lg border border-sky-500/10 bg-sky-500/5 text-center"><span class="text-[10px] block mb-0.5 font-bold text-sky-500">التوريد</span><span class="text-xs font-extrabold text-sky-500">' + totalRemittance.toLocaleString() + '</span></div>';
-    h += '</div>';
     h += _renderArchiveStatusRings(statusCounts, totalCount);
-    h += '</div>';
-
-    h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
-    h += '<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">';
-    h += '<h3 class="text-xs font-bold text-text-main flex items-center gap-2">' + icon('box', 'w-3.5 h-3.5 text-primary') + ' توزيع حالات الشحنات المؤرشفة</h3>';
-    h += '<div class="flex gap-3">';
-    statusItems.forEach(function(item) {
-      h += '<span class="text-[10px] font-bold ' + item.tc + '">' + item.label + ': ' + statusCounts[item.key] + '</span>';
-    });
-    h += '</div></div>';
-    h += '<div class="flex items-center justify-center">' + _renderArchiveDonutChart(statusCounts) + '</div>';
     h += '</div>';
 
     h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
