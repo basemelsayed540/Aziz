@@ -146,6 +146,10 @@
         .notif-item .notif-dismiss-btn:hover { background: #ef4444; color: #fff; }
         .notif-empty { padding: 30px 16px; text-align: center; color: #94a3b8; font-size: .8rem; font-weight: 600; }
         .disable-transitions, .disable-transitions * { transition: none !important; }
+        .load-more-btn { width: 100%; padding: 12px; margin-top: 16px; border-radius: 12px; background: #4f46e5; color: #fff; border: none; font-size: 15px; font-weight: 600; font-family: 'Cairo', sans-serif; cursor: pointer; transition: all .2s; }
+        .load-more-btn:hover { background: #4338ca; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(79,70,229,.3); }
+        body.light .load-more-btn { background: #6366f1; }
+        body.light .load-more-btn:hover { background: #4f46e5; }
     </style>
 </head>
 <body class="dark">
@@ -911,6 +915,11 @@
         var _sent = getFollowupsSent();
         var _favs = getFavorites();
         var visible = filteredShipments.slice(0, renderedCount);
+        var moreBtn = '';
+        if (filteredShipments.length > renderedCount) {
+            var remaining = filteredShipments.length - renderedCount;
+            moreBtn = '<button class="load-more-btn" onclick="loadMoreShipments()">تحميل المزيد (' + remaining + ' شحنة متبقية)</button>';
+        }
         container.innerHTML = visible.map(function(s, idx) {
             var sid = String(s.id);
             var needsFollowup = followupStatuses.includes(s['الحالة'] || '') && !_dismissed[sid];
@@ -957,11 +966,7 @@
                     '</div>' +
                 '</div>' +
             '</div>';
-        }).join('');
-        if (filteredShipments.length > renderedCount) {
-            var remaining = filteredShipments.length - renderedCount;
-            container.innerHTML += '<button onclick="loadMoreShipments()" style="width:100%;padding:12px;margin-top:16px;border-radius:12px;background:var(--btn-primary,#6366f1);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;">تحميل المزيد (' + remaining + ' شحنة متبقية)</button>';
-        }
+        }).join('') + moreBtn;
     }
 
     function loadMoreShipments() {

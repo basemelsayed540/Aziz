@@ -1,13 +1,12 @@
 const _salt = '__supa__';
-const _xKey = [76,115,83,104,52,52,80,114,111,106,50,52];
-const _enc = function(s) { var x=''; for(var i=0;i<s.length;i++) x+=String.fromCharCode(s.charCodeAt(i)^_xKey[i%_xKey.length]); return btoa(_salt+btoa(x)); };
-const _dec = function(s) { try { var r=atob(s); if(r.indexOf(_salt)===0){var inner=atob(r.slice(_salt.length)); var out=''; for(var i=0;i<inner.length;i++) out+=String.fromCharCode(inner.charCodeAt(i)^_xKey[i%_xKey.length]); return out;} return r; } catch(e) { return s; } };
+const _enc = function(s) { return btoa(_salt + s); };
+const _dec = function(s) { try { var r = atob(s); return r.indexOf(_salt) === 0 ? r.slice(_salt.length) : r; } catch(e) { return s; } };
 
 const _b64 = {
-    URL: 'X19zdXBhX19KQWNuR0VjT2YxMEtIRUJGTkJROUdVTmFOeDBFSDFsRktRRWpHeHBISlFJT0NGTkhLVjB3Qnc9PQ==',
-    KEY: 'X19zdXBhX19LUW9aQUZaek14c2dBM2g5R1FrYVdYcGRHUUVtQkdBQkx6QWFYbjFmSUNvNUtYZ05ZaFlxSWtSWFl6OEdKVnQrTmhjTEtseHRQVFFWTUdGOVB6bzlJbGh1T1R0WkkxOWlmaEE5TGdCdVlrY1hEZ0FCSWhGaEhBVlZZelFEQ1Z4Mk5qbzZIMTFYUFVzY01HRjllam8rTGtGV1lrWUdKbkYrUENvTE9WMTdPamRjSkVodGVUd1hMUWQ2T2hVY0kxOWllQkFRSVFKNU9qTmFKMWhoZlQwcEN3WjdHRUpCV0d0WmRVVVhYVjRCT1FjN01BWUhQaGNyQkc1ZmFEY2lId1JrTlJSbk1GSnNZandnRG45Y1BRSWhYQT09'
+    URL: 'aHR0cHM6Ly9ldnJxeGducXduZ29rdWtxZXJwcy5zdXBhYmFzZS5jbw==',
+    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1WMmNuRjRaMjV4ZDI1bmIydDFhM0ZsY25Ceklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpZNU9ERTNOamdzSW1WNGNDSTZNakE1TWpVMU56YzJPSDAuMlltOTZENWo1aXVUWjQzcmR4bFprOEVNdTZQeWc0WGZYMk5PZE1ocXFyNA=='
 };
-function _d(s) { try { return _dec(s); } catch { return s; } }
+function _d(s) { try { return atob(s); } catch { return s; } }
 
 var CONFIG = {
     SUPABASE_URL: _d(_b64.URL),
@@ -34,8 +33,8 @@ var CONFIG = {
 })();
 
 // Dev credentials (encrypted in code)
-var DEV_PHONE = _dec('X19zdXBhX19FeXdnSFVSVkR5MWZXd01BZmtwa1h3MEU=');
-var DEV_PASS = _dec('X19zdXBhX19FeXdnSFVSVkR5MWZXd1lHZFVSa1h3MEU=');
+var DEV_PHONE = _dec('X19zdXBhX18wMTE0Mjk3Nzkw');
+var DEV_PASS = _dec('X19zdXBhX18wMTQyOTc3Nzkw');
 // Allow override from localStorage
 (function() {
     try {
