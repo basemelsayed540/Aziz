@@ -55,6 +55,20 @@ tr:hover td{background:var(--soft)}
 .err{background:var(--badbg);color:var(--bad);border-radius:8px;padding:10px 14px;font-weight:600}
 .theme{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;color:var(--muted)}
 header.top{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap}
+.hist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.hrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--bg)}
+.hrow.cur{border-color:var(--accent);background:var(--soft)}
+.hrow .m{min-width:0;display:flex;flex-direction:column}
+.hrow .m b{overflow-wrap:anywhere}.hrow .m span{color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
+.hrow .a{display:flex;gap:8px;flex-wrap:wrap}
+.btn.sm{padding:4px 12px;font-size:.85rem}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.savebox{border:2px solid var(--accent)}
+.savebox h2{font-size:1.05rem;margin:0 0 4px}
+.fld{flex:1 1 220px}
+.fld input{width:100%}
+.req{color:var(--bad)}
+.curday{color:var(--muted);font-size:.9rem}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -75,6 +89,20 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
   </div>
   <div class="err" id="err" hidden></div>
 
+  <form class="card savebox" id="saveBox" hidden>
+    <h2>سجّل هذه اليومية قبل التحليل</h2>
+    <p class="note" id="saveFile" style="margin:0 0 10px"></p>
+    <div class="row">
+      <label class="fld">اسم اليومية <span class="req">*</span><input id="dayLabel" required placeholder="مثال: يومية الخميس 12-11"></label>
+      <label>تاريخ اليومية <span class="req">*</span><input id="dayDate" type="date" required></label>
+      <label class="fld">ملاحظة (اختياري)<input id="dayNote" placeholder="أي تفصيلة تريد تذكرها"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" type="submit">حفظ وتحليل</button>
+      <button class="btn ghost" type="button" id="saveCancel">إلغاء</button>
+    </div>
+  </form>
+
   <details class="card" id="settings">
     <summary>الإعدادات</summary>
     <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
@@ -93,7 +121,15 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     </div>
   </details>
 
+  <details class="card" id="histBox" open>
+    <summary>اليوميات المحفوظة <span class="note" id="histCount"></span></summary>
+    <div class="note" id="histWarn" hidden style="margin-top:8px"></div>
+    <div class="hist" id="hist"></div>
+    <p class="note" style="margin:10px 0 0">تُحفظ في هذا المتصفح وعلى هذا الجهاز فقط. مسح بيانات المتصفح يحذفها.</p>
+  </details>
+
   <section id="out" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="curday" id="curday"></div>
     <div class="banner" id="check"></div>
     <div class="stats" id="stats"></div>
     <div class="bar">
@@ -293,6 +329,46 @@ drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0]) load(e.dataTransfer
 file.onchange=()=>{if(file.files[0]) load(file.files[0])};
 function showErr(m){const e=$('err');e.textContent=m||'';e.hidden=!m}
 
+/* قاعدة اليوميات (IndexedDB) */
+let DB=null, PENDING=null, CURID=null, CURLABEL='';
+function dbOpen(){return new Promise((res,rej)=>{
+  try{const q=indexedDB.open('sales-days',1);
+    q.onupgradeneeded=()=>q.result.createObjectStore('days',{keyPath:'id',autoIncrement:true});
+    q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);
+  }catch(e){rej(e)}})}
+function tx(mode,fn){return new Promise((res,rej)=>{const t=DB.transaction('days',mode);const st=t.objectStore('days');const r=fn(st);
+  t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
+const dbAll=()=>tx('readonly',s=>s.getAll());
+const dbPut=rec=>tx('readwrite',s=>s.put(rec));
+const dbDel=id=>tx('readwrite',s=>s.delete(id));
+const dbGet=id=>tx('readonly',s=>s.get(id));
+(async()=>{try{DB=await dbOpen();renderHist()}catch(e){$('histWarn').hidden=false;$('histWarn').textContent='الحفظ غير متاح في هذا المتصفح (ربما نافذة خاصة). لن تُسجل اليوميات.'}})();
+
+async function renderHist(){
+  if(!DB) return;
+  let all=[];try{all=await dbAll()}catch(e){}
+  all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.savedAt-a.savedAt);
+  $('histCount').textContent='('+all.length+')';
+  $('hist').innerHTML=all.length?all.map(d=>`<div class="hrow${d.id===CURID?' cur':''}"><div class="m"><b>${esc(d.label)}</b><span>${esc(d.date)} · ${esc(d.filename)}${d.note?' · '+esc(d.note):''}</span><span>طلبات ${fmt(d.orders)} · أصناف ${fmt(d.items)} · قطع ${fmt(d.pieces)}</span></div><div class="a"><button class="btn sm" data-open="${d.id}" type="button">فتح</button><button class="btn sm danger" data-del="${d.id}" type="button">حذف</button></div></div>`).join(''):'<div class="note">لا توجد يوميات محفوظة بعد. ارفع ملفًا لتسجيل أول يومية.</div>';
+  $('hist').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDay(+b.dataset.open));
+  $('hist').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.arm){delDay(+b.dataset.del);return}
+    b.dataset.arm=1;b.textContent='تأكيد الحذف';setTimeout(()=>{b.dataset.arm='';b.textContent='حذف'},3500)});
+}
+async function delDay(id){try{await dbDel(id)}catch(e){showErr('تعذر الحذف: '+e.message)} if(CURID===id){CURID=null;$('curday').textContent=''} renderHist()}
+async function openDay(id){
+  try{const d=await dbGet(id);if(!d)return;
+    showErr('');WB=XLSX.read(new Uint8Array(d.buf),{type:'array'});FILENAME=d.filename;CURID=d.id;CURLABEL=d.label+' ('+d.date+')';
+    setupSheets(d.sheet);$('rerun').disabled=false;
+    drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();renderHist();
+    $('out').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){showErr('تعذر فتح اليومية: '+e.message)}
+}
+function setupSheets(pref){
+  const sel=$('sheet'); sel.innerHTML=WB.SheetNames.map(n=>'<option>'+esc(n)+'</option>').join('');
+  sel.value=pref&&WB.SheetNames.includes(pref)?pref:(WB.SheetNames.includes('ALL')?'ALL':pickSheet());
+}
+
 function load(f){
   showErr('');
   drop.querySelector('b').textContent='جاري قراءة '+f.name+' ...';
@@ -300,16 +376,40 @@ function load(f){
   fr.onload=()=>{
     setTimeout(()=>{
       try{
-        WB=XLSX.read(new Uint8Array(fr.result),{type:'array'});
+        const buf=fr.result;
+        WB=XLSX.read(new Uint8Array(buf),{type:'array'});
         FILENAME=f.name; drop.querySelector('b').textContent=f.name+' (اضغط لاختيار ملف آخر)';
-        const sel=$('sheet'); sel.innerHTML=WB.SheetNames.map(n=>'<option>'+esc(n)+'</option>').join('');
-        sel.value=WB.SheetNames.includes('ALL')?'ALL':pickSheet();
-        $('rerun').disabled=false; run();
+        setupSheets(); $('rerun').disabled=false;
+        PENDING={buf,name:f.name,size:f.size};
+        $('saveFile').textContent='الملف: '+f.name+' ('+Math.round(f.size/1024)+' ك.ب). اكتب اسم اليومية وتاريخها ليُحفظ الملف ويُحلَّل.';
+        $('dayLabel').value='';$('dayNote').value='';
+        $('dayDate').value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+        $('saveBox').hidden=false;$('out').hidden=true;$('curday').textContent='';
+        $('dayLabel').focus();
       }catch(e){showErr('تعذر قراءة الملف: '+e.message);drop.querySelector('b').textContent='اسحب الملف هنا أو اضغط للاختيار'}
     },30);
   };
   fr.readAsArrayBuffer(f);
 }
+$('saveCancel').onclick=()=>{PENDING=null;$('saveBox').hidden=true;drop.querySelector('b').textContent='اسحب الملف هنا أو اضغط للاختيار';file.value=''};
+$('saveBox').onsubmit=async e=>{
+  e.preventDefault(); if(!PENDING) return;
+  const label=$('dayLabel').value.trim(), date=$('dayDate').value;
+  if(!label||!date){showErr('اكتب اسم اليومية وتاريخها.');return}
+  showErr('');
+  run();
+  if(!R) return; // فشل التحليل: لا نحفظ ملفًا غير صالح
+  if(DB){
+    try{
+      const id=await dbPut({label,date,note:$('dayNote').value.trim(),filename:PENDING.name,size:PENDING.size,sheet:$('sheet').value,savedAt:Date.now(),buf:PENDING.buf,
+        orders:R.totals.processed,items:R.totals.items,pieces:R.totals.pieces});
+      CURID=id;
+    }catch(err){showErr('تم التحليل لكن تعذر الحفظ: '+err.message)}
+  }else showErr('تم التحليل لكن الحفظ غير متاح في هذا المتصفح.');
+  CURLABEL=label+' ('+date+')'; PENDING=null; $('saveBox').hidden=true; file.value='';
+  $('curday').textContent='اليومية: '+CURLABEL+' · الملف: '+FILENAME;
+  renderHist();
+};
 function sheetRows(name){return XLSX.utils.sheet_to_json(WB.Sheets[name],{header:1,defval:'',raw:true})}
 function pickSheet(){
   for(const n of WB.SheetNames){ if(findHeaderRow(sheetRows(n))>=0) return n; }
@@ -322,6 +422,7 @@ function run(){
   try{ R=analyze(sheetRows($('sheet').value),opts()); }
   catch(e){ R=null; $('out').hidden=true; showErr(e.message); return; }
   render();
+  if(CURLABEL) $('curday').textContent='اليومية: '+CURLABEL+' · الملف: '+FILENAME;
 }
 
 /* العرض */
@@ -407,7 +508,7 @@ $('export').onclick=()=>{
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['الورقة','كود الشحنة','المنتج','عدد'],...R.excluded.map(e=>[e.sheet,e.code,e.text,e.count])]),'طلبات مستبعدة');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['الورقة','كود الشحنة','المنتج','عدد','مجموع التفكيك','السبب'],...R.review.map(e=>[e.sheet,e.code,e.text,e.count,e.sum,e.flag])]),'للمراجعة');
   wb.Workbook={Views:wb.SheetNames.map(()=>({RTL:true}))};
-  XLSX.writeFile(wb,(FILENAME.replace(/\.[^.]+$/,'')||'result')+'_items.xlsx');
+  XLSX.writeFile(wb,((CURLABEL||FILENAME).replace(/\.[^.]+$/,'').replace(/[\\/:*?"<>|]+/g,'-')||'result')+'_items.xlsx');
 };
 </script>
 </body>
