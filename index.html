@@ -124,7 +124,11 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
   <details class="card" id="histBox" open>
     <summary>اليوميات المحفوظة <span class="note" id="histCount"></span></summary>
     <div class="note" id="histWarn" hidden style="margin-top:8px"></div>
-    <div class="hist" id="hist"></div>
+    <div class="row" style="margin-top:10px">
+      <label class="fld">اختر يومية<select id="daySel" style="width:100%"></select></label>
+      <button class="btn danger sm" id="dayDel" type="button" disabled>حذف اليومية</button>
+    </div>
+    <div class="note" id="dayInfo" style="margin-top:8px"></div>
     <p class="note" style="margin:10px 0 0">تُحفظ في هذا المتصفح وعلى هذا الجهاز فقط. مسح بيانات المتصفح يحذفها.</p>
   </details>
 
@@ -305,7 +309,7 @@ if(typeof module!=='undefined') module.exports={analyze,splitProduct,norm,DEFAUL
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let WB=null, FILENAME='', R=null, tab='items';
+let DAYS=[],WB=null, FILENAME='', R=null, tab='items';
 $('aliases').value=DEFAULT_ALIASES;
 
 /* الوضع الليلي */
@@ -342,25 +346,34 @@ const dbAll=()=>tx('readonly',s=>s.getAll());
 const dbPut=rec=>tx('readwrite',s=>s.put(rec));
 const dbDel=id=>tx('readwrite',s=>s.delete(id));
 const dbGet=id=>tx('readonly',s=>s.get(id));
-(async()=>{try{DB=await dbOpen();renderHist()}catch(e){$('histWarn').hidden=false;$('histWarn').textContent='الحفظ غير متاح في هذا المتصفح (ربما نافذة خاصة). لن تُسجل اليوميات.'}})();
+(async()=>{try{DB=await dbOpen();refreshDays()}catch(e){$('histWarn').hidden=false;$('histWarn').textContent='الحفظ غير متاح في هذا المتصفح (ربما نافذة خاصة). لن تُسجل اليوميات.'}})();
 
-async function renderHist(){
-  if(!DB) return;
-  let all=[];try{all=await dbAll()}catch(e){}
-  all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.savedAt-a.savedAt);
-  $('histCount').textContent='('+all.length+')';
-  $('hist').innerHTML=all.length?all.map(d=>`<div class="hrow${d.id===CURID?' cur':''}"><div class="m"><b>${esc(d.label)}</b><span>${esc(d.date)} · ${esc(d.filename)}${d.note?' · '+esc(d.note):''}</span><span>طلبات ${fmt(d.orders)} · أصناف ${fmt(d.items)} · قطع ${fmt(d.pieces)}</span></div><div class="a"><button class="btn sm" data-open="${d.id}" type="button">فتح</button><button class="btn sm danger" data-del="${d.id}" type="button">حذف</button></div></div>`).join(''):'<div class="note">لا توجد يوميات محفوظة بعد. ارفع ملفًا لتسجيل أول يومية.</div>';
-  $('hist').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDay(+b.dataset.open));
-  $('hist').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{
-    if(b.dataset.arm){delDay(+b.dataset.del);return}
-    b.dataset.arm=1;b.textContent='تأكيد الحذف';setTimeout(()=>{b.dataset.arm='';b.textContent='حذف'},3500)});
+async function refreshDays(){try{DAYS=await dbAll()}catch(e){DAYS=[]}renderHist()}
+function renderHist(){
+  const sel=$('daySel');
+  const list=DAYS.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.savedAt||0)-(a.savedAt||0));
+  $('histCount').textContent='('+list.length+')';
+  sel.innerHTML='<option value="">'+(list.length?'اختر يومية محفوظة ('+list.length+')':'لا توجد يوميات بعد')+'</option>'+
+    list.map(d=>`<option value="${esc(d.id)}">${esc(d.date)} - ${esc(d.label)}</option>`).join('');
+  sel.value=CURID!=null&&list.some(d=>d.id===CURID)?String(CURID):'';
+  sel.disabled=!list.length;
+  const cur=list.find(d=>d.id===CURID);
+  $('dayInfo').textContent=cur?`${cur.filename}${cur.note?' · '+cur.note:''} · طلبات ${fmt(cur.orders)} · أصناف ${fmt(cur.items)} · قطع ${fmt(cur.pieces)}`:(list.length?'القائمة مرتبة من الأحدث إلى الأقدم حسب تاريخ اليومية.':'ارفع ملفًا لتسجيل أول يومية.');
+  const del=$('dayDel');del.disabled=!cur;del.dataset.arm='';del.textContent='حذف اليومية';
 }
-async function delDay(id){try{await dbDel(id)}catch(e){showErr('تعذر الحذف: '+e.message)} if(CURID===id){CURID=null;$('curday').textContent=''} renderHist()}
+$('daySel').onchange=e=>{const v=e.target.value;if(v) openDay(+v)};
+$('dayDel').onclick=function(){
+  if(CURID==null) return;
+  if(this.dataset.arm){delDay(CURID);return}
+  this.dataset.arm=1;this.textContent='اضغط للتأكيد';const b=this;setTimeout(()=>{b.dataset.arm='';b.textContent='حذف اليومية'},3500);
+};
+
+async function delDay(id){try{await dbDel(id)}catch(e){showErr('تعذر الحذف: '+e.message)} if(CURID===id){CURID=null;$('curday').textContent=''} refreshDays()}
 async function openDay(id){
   try{const d=await dbGet(id);if(!d)return;
     showErr('');WB=XLSX.read(new Uint8Array(d.buf),{type:'array'});FILENAME=d.filename;CURID=d.id;CURLABEL=d.label+' ('+d.date+')';
     setupSheets(d.sheet);$('rerun').disabled=false;
-    drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();renderHist();
+    drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();refreshDays();
     $('out').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){showErr('تعذر فتح اليومية: '+e.message)}
 }
@@ -408,7 +421,7 @@ $('saveBox').onsubmit=async e=>{
   }else showErr('تم التحليل لكن الحفظ غير متاح في هذا المتصفح.');
   CURLABEL=label+' ('+date+')'; PENDING=null; $('saveBox').hidden=true; file.value='';
   $('curday').textContent='اليومية: '+CURLABEL+' · الملف: '+FILENAME;
-  renderHist();
+  refreshDays();
 };
 function sheetRows(name){return XLSX.utils.sheet_to_json(WB.Sheets[name],{header:1,defval:'',raw:true})}
 function pickSheet(){
