@@ -247,10 +247,12 @@ function splitProduct(textRaw, count, aliases){
   if(raw.length>=TRUNC_LEN-2 && !flag) flag='النص مقطوع عند '+TRUNC_LEN+' حرف، راجع آخر صنف';
   return {excluded:false, mode, items:out, sum:out.reduce((a,b)=>a+b[1],0), flag};
 }
+/* مفتاح اسم العمود: يتجاهل ال التعريف والمسافات والهمزات والتاء المربوطة */
+function colKey(s){ return norm(s).replace(/\s+/g,'').replace(/^ال/,''); }
 function findHeaderRow(rows){
   for(let i=0;i<Math.min(rows.length,60);i++){
-    const r=rows[i].map(x=>String(x).trim());
-    if(r.includes('المنتج') && r.includes('الحالة')) return i;
+    const r=rows[i].map(colKey);
+    if(r.includes(colKey('المنتج')) && r.includes(colKey('الحالة'))) return i;
   }
   return -1;
 }
@@ -259,7 +261,7 @@ function analyze(rows, opts){
   const hi = findHeaderRow(rows);
   if(hi<0) throw new Error('لم أجد صف العناوين (المنتج / الحالة) في هذه الورقة.');
   const head = rows[hi].map(x=>String(x).trim());
-  const ci = n=>head.indexOf(n);
+  const ci = n=>head.findIndex(h=>colKey(h)===colKey(n));
   const need=['المنتج','الحالة','مندوب','عدد','كود الشحنة',opts.closeCol];
   const miss=need.filter(n=>ci(n)<0);
   if(miss.length) throw new Error('أعمدة ناقصة: '+miss.join('، '));
@@ -293,10 +295,9 @@ function analyze(rows, opts){
   const dupSheets={};
   for(const g of Object.keys(groups)){
     const freq={}; groups[g].forEach(r=>{const k=String(r[cP]).trim();freq[k]=(freq[k]||0)+1;});
-    dupSheets[g]=groups[g].map(r=>({r,f:freq[String(r[cP]).trim()]})).sort((a,b)=>b.f-a.f).map(x=>[x.f,...x.r.filter((_,i)=>!(i===0&&head[0]==='عمود3'))]);
+    dupSheets[g]=groups[g].map(r=>({r,f:freq[String(r[cP]).trim()]})).sort((a,b)=>b.f-a.f).map(x=>[x.f,...x.r.filter((_,i)=>!(i===0&&colKey(head[0])===colKey('عمود3')))]);
   }
-  const dropped=head.indexOf('عمود3');
-  const outHead=['عدد الصنف',...head.filter((_,i)=>i!==0 || head[0]!=='عمود3')];
+    const outHead=['عدد الصنف',...head.filter((_,i)=>i!==0 || colKey(head[0])!==colKey('عمود3'))];
   const orders = groups['قيد'].length+groups['قيد الدرج'].length+groups['تم'].length;
   const longTotal = longRows.reduce((a,b)=>a+b[4],0);
   const orderedCount = longRows.reduce((s,r)=>{return s},0);
