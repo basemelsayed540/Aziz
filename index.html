@@ -70,6 +70,7 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
 .fld input{width:100%}
 .req{color:var(--bad)}
 .curday{color:var(--muted);font-size:.9rem}
+.stk{width:92px;text-align:center;background:var(--warnbg);border-color:var(--warn);padding:3px 6px;font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -312,6 +313,7 @@ if(typeof module!=='undefined') module.exports={analyze,splitProduct,norm,DEFAUL
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let DAYS=[],WB=null, FILENAME='', R=null, tab='items';
+let STOCK={}, stkT=null; // المخزون الجديد المُدخل لكل صنف (اسم الصنف => كمية)، ويُحفظ مع اليومية
 $('aliases').value=DEFAULT_ALIASES;
 
 /* الوضع الليلي */
@@ -372,7 +374,7 @@ $('dayDel').onclick=function(){
 async function delDay(id){try{await dbDel(id)}catch(e){showErr('تعذر الحذف: '+e.message)} if(CURID===id){CURID=null;$('curday').textContent=''} refreshDays()}
 async function openDay(id){
   try{const d=await dbGet(id);if(!d)return;
-    showErr('');WB=XLSX.read(new Uint8Array(d.buf),{type:'array'});FILENAME=d.filename;CURID=d.id;CURLABEL=d.label+' ('+d.date+')';
+    showErr('');WB=XLSX.read(new Uint8Array(d.buf),{type:'array'});FILENAME=d.filename;CURID=d.id;CURLABEL=d.label+' ('+d.date+')';STOCK=d.stock||{};
     setupSheets(d.sheet);$('rerun').disabled=false;
     drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();refreshDays();
     $('out').scrollIntoView({behavior:'smooth',block:'start'});
@@ -412,11 +414,12 @@ $('saveBox').onsubmit=async e=>{
   const label=$('dayLabel').value.trim(), date=$('dayDate').value;
   if(!label||!date){showErr('اكتب اسم اليومية وتاريخها.');return}
   showErr('');
+  STOCK={};
   run();
   if(!R) return; // فشل التحليل: لا نحفظ ملفًا غير صالح
   if(DB){
     try{
-      const id=await dbPut({label,date,note:$('dayNote').value.trim(),filename:PENDING.name,size:PENDING.size,sheet:$('sheet').value,savedAt:Date.now(),buf:PENDING.buf,
+      const id=await dbPut({label,date,note:$('dayNote').value.trim(),filename:PENDING.name,size:PENDING.size,sheet:$('sheet').value,savedAt:Date.now(),buf:PENDING.buf,stock:{},
         orders:R.totals.processed,items:R.totals.items,pieces:R.totals.pieces});
       CURID=id;
     }catch(err){showErr('تم التحليل لكن تعذر الحفظ: '+err.message)}
@@ -455,7 +458,7 @@ function render(){
     `<div class="stat ${R.review.length?'bad':'ok'}"><small>للمراجعة</small><b>${R.review.length}</b></div>`;
   const sc=Object.entries(R.statusCount).map(([k,v])=>k+' '+v).join('، ');
   $('assume').innerHTML=`<b>الافتراضات</b><br>الحالات الموجودة بعد الفلتر: ${esc(sc)}، والحالات غير "${esc($('stPend').value)}" و"${esc($('stDone').value)}" مستبعدة.<br>
-  الطلبات التي فيها استبدال أو هيستلم أو اوردر ناقص تُستبعد لأنها تسليم بديل وليست بيعًا. تُهمل بادئة "بوكس الصيف". الاسبراي المكررة بلا فولي في نفس الطلب تُعتبر الأولى منها فولي كريم. النص المقطوع عند 250 حرفًا يُكمل بقطعة غير محددة إن نقص المجموع عن عمود عدد.`;
+  الطلبات التي فيها استبدال أو هيستلم أو اوردر ناقص تُستبعد لأنها تسليم بديل وليست بيعًا. تُهمل بادئة "بوكس الصيف". الاسبراي المكررة بلا فولي في نفس الطلب تُعتبر الأولى منها فولي كريم. النص المقطوع عند 250 حرفًا يُكمل بقطعة غير محددة إن نقص المجموع عن عمود عدد.<br>عمود "قيد + مخزون جديد" = قطع "قيد" + المخزون الجديد المُدخل (الخانة الفارغة تُحسب صفرًا).`;
   const tabs=[['items','الأصناف',T.items],['قيد','قيد',g['قيد'].length],['قيد الدرج','قيد الدرج',g['قيد الدرج'].length],['تم','تم',g['تم'].length],
     ['long','تفكيك الطلبات',R.longRows.length],['ex','مستبعدة',R.excluded.length],['rev','للمراجعة',R.review.length]];
   $('tabs').innerHTML=tabs.map(t=>`<button class="tab" role="tab" data-t="${t[0]}" aria-selected="${t[0]===tab}">${t[1]}<em>${fmt(t[2])}</em></button>`).join('');
@@ -468,12 +471,14 @@ function table(){
   const match=r=>!nq||r.some(c=>norm(c).includes(nq));
   if(tab==='items'){
     const max=Math.max(1,...R.itemRows.map(i=>i.total));
-    head=['الصنف','قيد','قيد الدرج','تم','الإجمالي'];cls=['','num','num','num','num'];
+    head=['الصنف','قيد','قيد الدرج','تم','الإجمالي','مخزون جديد','قيد + مخزون جديد'];cls=['','num','num','num','num','num','num'];
     const all=R.itemRows.filter(i=>match([i.name]));
-    rows=all.map(i=>[esc(i.name),i['قيد'],i['قيد الدرج'],i['تم'],`<span class="total">${fmt(i.total)}</span><span class="meter" style="width:${Math.round(i.total/max*90)}px"></span>`]);
+    rows=all.map(i=>{const sv=stockOf(i.name);return [esc(i.name),i['قيد'],i['قيد الدرج'],i['تم'],`<span class="total">${fmt(i.total)}</span><span class="meter" style="width:${Math.round(i.total/max*90)}px"></span>`,
+      `<input class="stk" type="number" min="0" step="1" inputmode="numeric" data-name="${esc(i.name)}" data-q="${i['قيد']}" value="${STOCK[i.name]==null?'':esc(STOCK[i.name])}" aria-label="مخزون جديد: ${esc(i.name)}">`,
+      `<span class="total sum">${fmt(i['قيد']+sv)}</span>`]});
     const s=k=>R.itemRows.reduce((a,i)=>a+i[k],0);
-    foot=`<tr><td class="total">المجموع</td><td class="num total">${fmt(s('قيد'))}</td><td class="num total">${fmt(s('قيد الدرج'))}</td><td class="num total">${fmt(s('تم'))}</td><td class="num total">${fmt(s('total'))}</td></tr>`;
-    note='عدد القطع المباعة من كل صنف مفرد بعد تفكيك البوكسات والعروض.';
+    foot=`<tr><td class="total">المجموع</td><td class="num total">${fmt(s('قيد'))}</td><td class="num total">${fmt(s('قيد الدرج'))}</td><td class="num total">${fmt(s('تم'))}</td><td class="num total">${fmt(s('total'))}</td><td class="num total" id="stkTot">${fmt(stockTotal())}</td><td class="num total" id="sumTot">${fmt(s('قيد')+stockTotal())}</td></tr>`;
+    note='عدد القطع المباعة من كل صنف مفرد بعد تفكيك البوكسات والعروض. اكتب المخزون الجديد في الخانات الصفراء فيُجمع على "قيد" ويُحفظ مع اليومية.';
   }else if(tab==='long'){
     head=['الورقة','كود الشحنة','المنتج الأصلي','الصنف','الكمية'];cls=['','','','','num'];
     rows=R.longRows.filter(match).map(r=>r.map((c,i)=>i===4?c:esc(c)));
@@ -494,25 +499,52 @@ function table(){
 }
 $('q').oninput=table;
 
+/* المخزون الجديد: الخانة الفارغة أو غير الصالحة تُحسب صفرًا */
+function stockOf(name){const v=Number(STOCK[name]);return Number.isFinite(v)&&v>0?v:0}
+function stockTotal(){return R.itemRows.reduce((a,i)=>a+stockOf(i.name),0)}
+function saveStockSoon(){
+  const id=CURID, snap={...STOCK};
+  clearTimeout(stkT);
+  stkT=setTimeout(async()=>{
+    if(!DB||id==null) return;
+    try{const d=await dbGet(id); if(!d) return; d.stock=snap; await dbPut(d)}
+    catch(e){showErr('تعذر حفظ المخزون الجديد: '+e.message)}
+  },500);
+}
+$('tbl').addEventListener('input',e=>{
+  const t=e.target; if(!t.classList||!t.classList.contains('stk')) return;
+  const name=t.dataset.name, raw=t.value.trim();
+  if(raw==='') delete STOCK[name]; else STOCK[name]=Number(raw);
+  const sum=t.closest('tr').querySelector('.sum'); if(sum) sum.textContent=fmt((+t.dataset.q)+stockOf(name));
+  const pend=R.itemRows.reduce((a,i)=>a+i['قيد'],0), st=stockTotal();
+  if($('stkTot')) $('stkTot').textContent=fmt(st);
+  if($('sumTot')) $('sumTot').textContent=fmt(pend+st);
+  saveStockSoon();
+});
+
 /* التصدير (الأرقام صيغ SUMIFS على ورقة التفكيك) */
 $('export').onclick=()=>{
   if(!R) return;
   const wb=XLSX.utils.book_new(); const L="'تفكيك الطلبات'";
   const n=R.longRows.length+1;
-  const A=[['الصنف','قيد','قيد الدرج','تم','الإجمالي']];
+  const A=[['الصنف','قيد','قيد الدرج','تم','الإجمالي','مخزون جديد','قيد + مخزون جديد']];
   R.itemRows.forEach((it,i)=>{const r=i+2;A.push([it.name,
     {t:'n',v:it['قيد'],f:`SUMIFS(${L}!$E$2:$E$${n},${L}!$D$2:$D$${n},$A${r},${L}!$A$2:$A$${n},B$1)`},
     {t:'n',v:it['قيد الدرج'],f:`SUMIFS(${L}!$E$2:$E$${n},${L}!$D$2:$D$${n},$A${r},${L}!$A$2:$A$${n},C$1)`},
     {t:'n',v:it['تم'],f:`SUMIFS(${L}!$E$2:$E$${n},${L}!$D$2:$D$${n},$A${r},${L}!$A$2:$A$${n},D$1)`},
-    {t:'n',v:it.total,f:`SUM(B${r}:D${r})`}]);});
+    {t:'n',v:it.total,f:`SUM(B${r}:D${r})`},
+    STOCK[it.name]==null?null:{t:'n',v:stockOf(it.name)},  // خانة الإدخال: تبقى فارغة إن لم يُكتب شيء
+    {t:'n',v:it['قيد']+stockOf(it.name),f:`B${r}+N(F${r})`}]);});
   const last=A.length, T=R.totals;
   A.push([]);
-  A.push(['المجموع',{t:'n',v:R.itemRows.reduce((a,i)=>a+i['قيد'],0),f:`SUM(B2:B${last})`},{t:'n',v:R.itemRows.reduce((a,i)=>a+i['قيد الدرج'],0),f:`SUM(C2:C${last})`},{t:'n',v:R.itemRows.reduce((a,i)=>a+i['تم'],0),f:`SUM(D2:D${last})`},{t:'n',v:T.pieces,f:`SUM(E2:E${last})`}]);
+  A.push(['المجموع',{t:'n',v:R.itemRows.reduce((a,i)=>a+i['قيد'],0),f:`SUM(B2:B${last})`},{t:'n',v:R.itemRows.reduce((a,i)=>a+i['قيد الدرج'],0),f:`SUM(C2:C${last})`},{t:'n',v:R.itemRows.reduce((a,i)=>a+i['تم'],0),f:`SUM(D2:D${last})`},{t:'n',v:T.pieces,f:`SUM(E2:E${last})`},
+    {t:'n',v:stockTotal(),f:`SUM(F2:F${last})`},{t:'n',v:R.itemRows.reduce((a,i)=>a+i['قيد'],0)+stockTotal(),f:`SUM(G2:G${last})`}]);
   const sumRow=A.length;
   A.push(['مجموع عمود عدد (للمراجعة)','','','',T.countSum]);
   A.push(['الفرق',  '','','',{t:'n',v:T.diff,f:`E${sumRow}-E${sumRow+1}`}]);
   A.push([]);A.push(['ملاحظة: الطلبات المستبعدة (استبدال/استكمال) لا تُحسب كمبيعات.']);
-  const wsA=XLSX.utils.aoa_to_sheet(A); wsA['!cols']=[{wch:30},{wch:10},{wch:12},{wch:10},{wch:12}];
+  A.push(['المخزون الجديد: اكتب الكمية في العمود F لكل صنف، وعمود G = قيد + مخزون جديد (الخانة الفارغة تُحسب صفرًا).']);
+  const wsA=XLSX.utils.aoa_to_sheet(A); wsA['!cols']=[{wch:30},{wch:10},{wch:12},{wch:10},{wch:12},{wch:13},{wch:18}];
   XLSX.utils.book_append_sheet(wb,wsA,'الأصناف');
   for(const g of ['قيد','قيد الدرج','تم']){
     const ws=XLSX.utils.aoa_to_sheet([R.outHead,...R.dupSheets[g]]); ws['!cols']=R.outHead.map((h,i)=>({wch:i===0?10:/المنتج|العنوان|ملاحظات/.test(h)?40:14}));
