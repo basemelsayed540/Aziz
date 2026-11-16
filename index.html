@@ -70,12 +70,27 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
 .fld input{width:100%}
 .req{color:var(--bad)}
 .curday{color:var(--muted);font-size:.9rem}
+/* صفحة كل المنتجات: أصفر = صنف جديد، أحمر = صنف غير موجود في الملف المفتوح */
+:root{--yel:#fff59d;--red:#ffb3ad}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--yel:#5c5200;--red:#6b2420}}
+:root[data-theme="dark"]{--yel:#5c5200;--red:#6b2420}
+.wrap[data-view="cat"] .v-an{display:none!important}
+#catSec{display:flex;flex-direction:column;gap:16px}
+.wrap[data-view="an"] #catSec{display:none}
+tr.new td{background:var(--yel)}
+tr.miss td{background:var(--red)}
+tr.new:hover td,tr.miss:hover td{filter:brightness(.96)}
+.bdg{display:inline-block;margin-inline-start:8px;padding:0 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:.75rem;font-weight:600;line-height:1.5}
+.legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:.85rem;color:var(--muted)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line);vertical-align:middle;margin-inline-end:6px}
+.sw.y{background:var(--yel)}.sw.r{background:var(--red)}
+.neg{color:var(--bad);font-weight:700}
 .stk{width:92px;text-align:center;background:var(--warnbg);border-color:var(--warn);padding:3px 6px;font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" data-view="an">
   <header class="top">
     <div>
       <h1>محلل مبيعات الأصناف</h1>
@@ -84,14 +99,19 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     <button class="theme" id="themeBtn" type="button">الوضع الليلي</button>
   </header>
 
-  <label class="drop" id="drop" for="file" tabindex="0" role="button" aria-label="اختر ملف Excel">
+  <nav class="tabs" id="views" role="tablist" aria-label="الصفحات">
+    <button class="tab" role="tab" data-v="an" aria-selected="true" type="button">التحليل</button>
+    <button class="tab" role="tab" data-v="cat" aria-selected="false" type="button">كل المنتجات<em id="catN">0</em></button>
+  </nav>
+
+  <label class="drop v-an" id="drop" for="file" tabindex="0" role="button" aria-label="اختر ملف Excel">
     <b>اسحب الملف هنا أو اضغط للاختيار</b>
     <span>xlsb أو xlsx أو xls</span>
     <input type="file" id="file" class="vh">
   </label>
   <div class="err" id="err" hidden></div>
 
-  <form class="card savebox" id="saveBox" hidden>
+  <form class="card savebox v-an" id="saveBox" hidden>
     <h2>سجّل هذه اليومية قبل التحليل</h2>
     <p class="note" id="saveFile" style="margin:0 0 10px"></p>
     <div class="row">
@@ -105,7 +125,7 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     </div>
   </form>
 
-  <details class="card" id="settings">
+  <details class="card v-an" id="settings">
     <summary>الإعدادات</summary>
     <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
       <div class="row">
@@ -123,7 +143,7 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     </div>
   </details>
 
-  <details class="card" id="histBox" open>
+  <details class="card v-an" id="histBox" open>
     <summary>اليوميات المحفوظة <span class="note" id="histCount"></span></summary>
     <div class="note" id="histWarn" hidden style="margin-top:8px"></div>
     <div class="row" style="margin-top:10px">
@@ -134,7 +154,7 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     <p class="note" style="margin:10px 0 0">تُحفظ في هذا المتصفح وعلى هذا الجهاز فقط. مسح بيانات المتصفح يحذفها.</p>
   </details>
 
-  <section id="out" hidden style="display:flex;flex-direction:column;gap:16px">
+  <section id="out" class="v-an" hidden style="display:flex;flex-direction:column;gap:16px">
     <div class="curday" id="curday"></div>
     <div class="banner" id="check"></div>
     <div class="stats" id="stats"></div>
@@ -148,6 +168,17 @@ header.top{display:flex;justify-content:space-between;gap:12px;align-items:start
     <div class="note" id="tnote"></div>
     <div class="tbl"><table id="tbl"></table></div>
     <div class="card note" id="assume"></div>
+  </section>
+
+  <section id="catSec" aria-label="كل المنتجات">
+    <div class="curday" id="cday"></div>
+    <div class="stats" id="cstats"></div>
+    <div class="bar">
+      <div class="legend"><span><i class="sw y"></i>أصفر: صنف جديد ظهر لأول مرة في هذه اليومية</span><span><i class="sw r"></i>أحمر: صنف سابق غير موجود في الملف المفتوح</span></div>
+      <input id="cq" type="search" placeholder="بحث في المنتجات" aria-label="بحث في المنتجات">
+    </div>
+    <div class="note" id="cnote"></div>
+    <div class="tbl"><table id="catTbl"></table></div>
   </section>
 </div>
 
@@ -339,17 +370,22 @@ function showErr(m){const e=$('err');e.textContent=m||'';e.hidden=!m}
 /* قاعدة اليوميات (IndexedDB) */
 let DB=null, PENDING=null, CURID=null, CURLABEL='';
 function dbOpen(){return new Promise((res,rej)=>{
-  try{const q=indexedDB.open('sales-days',1);
-    q.onupgradeneeded=()=>q.result.createObjectStore('days',{keyPath:'id',autoIncrement:true});
-    q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);
+  try{const q=indexedDB.open('sales-days',2); // الإصدار 2: إضافة مخزن catalog لقائمة المنتجات
+    q.onupgradeneeded=()=>{const db=q.result;
+      if(!db.objectStoreNames.contains('days')) db.createObjectStore('days',{keyPath:'id',autoIncrement:true});
+      if(!db.objectStoreNames.contains('catalog')) db.createObjectStore('catalog',{keyPath:'name'});};
+    q.onblocked=()=>{$('histWarn').hidden=false;$('histWarn').textContent='أغلق أي نافذة أخرى مفتوحة لهذا الموقع ليكتمل تحديث قاعدة البيانات.'};
+    q.onsuccess=()=>{q.result.onversionchange=()=>q.result.close();res(q.result)};q.onerror=()=>rej(q.error);
   }catch(e){rej(e)}})}
-function tx(mode,fn){return new Promise((res,rej)=>{const t=DB.transaction('days',mode);const st=t.objectStore('days');const r=fn(st);
+function tx(mode,fn,store='days'){return new Promise((res,rej)=>{const t=DB.transaction(store,mode);const st=t.objectStore(store);const r=fn(st);
   t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error)})}
+const catAll=()=>tx('readonly',s=>s.getAll(),'catalog');
+const catPut=recs=>tx('readwrite',s=>{recs.forEach(r=>s.put(r))},'catalog');
 const dbAll=()=>tx('readonly',s=>s.getAll());
 const dbPut=rec=>tx('readwrite',s=>s.put(rec));
 const dbDel=id=>tx('readwrite',s=>s.delete(id));
 const dbGet=id=>tx('readonly',s=>s.get(id));
-(async()=>{try{DB=await dbOpen();refreshDays()}catch(e){$('histWarn').hidden=false;$('histWarn').textContent='الحفظ غير متاح في هذا المتصفح (ربما نافذة خاصة). لن تُسجل اليوميات.'}})();
+(async()=>{try{DB=await dbOpen();$('histWarn').hidden=true;await loadCatalog();await refreshDays();backfillP=backfillCatalog()}catch(e){$('histWarn').hidden=false;$('histWarn').textContent='الحفظ غير متاح في هذا المتصفح (ربما نافذة خاصة). لن تُسجل اليوميات.'}})();
 
 async function refreshDays(){try{DAYS=await dbAll()}catch(e){DAYS=[]}renderHist()}
 function renderHist(){
@@ -376,7 +412,7 @@ async function openDay(id){
   try{const d=await dbGet(id);if(!d)return;
     showErr('');WB=XLSX.read(new Uint8Array(d.buf),{type:'array'});FILENAME=d.filename;CURID=d.id;CURLABEL=d.label+' ('+d.date+')';STOCK=d.stock||{};
     setupSheets(d.sheet);$('rerun').disabled=false;
-    drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();refreshDays();
+    drop.querySelector('b').textContent='اضغط لرفع ملف جديد';run();refreshDays();await syncCatalog();
     $('out').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){showErr('تعذر فتح اليومية: '+e.message)}
 }
@@ -414,7 +450,7 @@ $('saveBox').onsubmit=async e=>{
   const label=$('dayLabel').value.trim(), date=$('dayDate').value;
   if(!label||!date){showErr('اكتب اسم اليومية وتاريخها.');return}
   showErr('');
-  STOCK={};
+  STOCK={}; SEQ++;
   run();
   if(!R) return; // فشل التحليل: لا نحفظ ملفًا غير صالح
   if(DB){
@@ -427,6 +463,7 @@ $('saveBox').onsubmit=async e=>{
   CURLABEL=label+' ('+date+')'; PENDING=null; $('saveBox').hidden=true; file.value='';
   $('curday').textContent='اليومية: '+CURLABEL+' · الملف: '+FILENAME;
   refreshDays();
+  await syncCatalog(); // الأصناف التي ظهرت لأول مرة تُضاف للقائمة وتظهر باللون الأصفر
 };
 function sheetRows(name){return XLSX.utils.sheet_to_json(WB.Sheets[name],{header:1,defval:'',raw:true})}
 function pickSheet(){
@@ -434,7 +471,8 @@ function pickSheet(){
   return WB.SheetNames[0];
 }
 function opts(){return{closeCol:$('closeCol').value.trim(),closeVal:$('closeVal').value.trim(),statusPending:$('stPend').value.trim(),statusDone:$('stDone').value.trim(),drumWord:$('drum').value.trim(),aliases:$('aliases').value}}
-$('rerun').onclick=run; $('sheet').onchange=run;
+const rerun=()=>{run(); if(R&&CURID!=null&&!PENDING) syncCatalog()};
+$('rerun').onclick=rerun; $('sheet').onchange=rerun;
 function run(){
   showErr('');
   try{ R=analyze(sheetRows($('sheet').value),opts()); }
@@ -513,14 +551,117 @@ function saveStockSoon(){
 }
 $('tbl').addEventListener('input',e=>{
   const t=e.target; if(!t.classList||!t.classList.contains('stk')) return;
-  const name=t.dataset.name, raw=t.value.trim();
-  if(raw==='') delete STOCK[name]; else STOCK[name]=Number(raw);
+  const name=t.dataset.name; setStock(name,t.value);
   const sum=t.closest('tr').querySelector('.sum'); if(sum) sum.textContent=fmt((+t.dataset.q)+stockOf(name));
   const pend=R.itemRows.reduce((a,i)=>a+i['قيد'],0), st=stockTotal();
   if($('stkTot')) $('stkTot').textContent=fmt(st);
   if($('sumTot')) $('sumTot').textContent=fmt(pend+st);
-  saveStockSoon();
 });
+
+/* صفحة كل المنتجات: قائمة تراكمية بكل صنف ظهر في أي ملف.
+   الصنف الجديد يُسجَّل تلقائيًا مع اليومية التي ظهر فيها أول مرة (firstDayId)، فيظهر أصفر عند عرض تلك اليومية.
+   الصنف المسجَّل سابقًا وغير الموجود في الملف المفتوح يظهر أحمر. */
+let VIEW='an', CAT=new Map(), CATROWS=[], CATBUSY=false, backfillP=null, SEQ=0;
+const curKey=()=>CURID!=null?CURID:'s'+SEQ;
+function setStock(name,raw){raw=String(raw).trim(); if(raw==='') delete STOCK[name]; else STOCK[name]=Number(raw); saveStockSoon()}
+async function loadCatalog(){try{(await catAll()).forEach(r=>CAT.set(r.name,r))}catch(e){} updateCatCount()}
+async function syncCatalog(){
+  if(backfillP) await backfillP;
+  if(!R) return;
+  const id=curKey(), label=CURLABEL||FILENAME, recs=[];
+  for(const it of R.itemRows) if(!CAT.has(it.name)){
+    const rec={name:it.name,firstDayId:id,firstLabel:label,addedAt:Date.now()}; CAT.set(it.name,rec); recs.push(rec);
+  }
+  if(recs.length&&DB){try{await catPut(recs)}catch(e){showErr('تعذر حفظ قائمة المنتجات: '+e.message)}}
+  renderCatalog();
+}
+/* أول تشغيل بعد التحديث: نبني القائمة من اليوميات المحفوظة سابقًا بالترتيب الزمني ليُنسب كل صنف لأول يومية ظهر فيها */
+async function backfillCatalog(){
+  if(!DB||CAT.size||!DAYS.length) return;
+  CATBUSY=true; renderCatalog();
+  const list=DAYS.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(a.savedAt||0)-(b.savedAt||0));
+  const recs=[];
+  for(const d of list){
+    await new Promise(r=>setTimeout(r,0));
+    try{
+      const wb=XLSX.read(new Uint8Array(d.buf),{type:'array'});
+      const nm=wb.SheetNames.includes(d.sheet)?d.sheet:(wb.SheetNames.includes('ALL')?'ALL':wb.SheetNames[0]);
+      const rr=analyze(XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:'',raw:true}),opts());
+      for(const it of rr.itemRows) if(!CAT.has(it.name)){
+        const rec={name:it.name,firstDayId:d.id,firstLabel:d.label+' ('+d.date+')',addedAt:d.savedAt||Date.now()}; CAT.set(it.name,rec); recs.push(rec);
+      }
+    }catch(e){/* يومية تالفة: نتخطاها */}
+  }
+  if(recs.length){try{await catPut(recs)}catch(e){}}
+  CATBUSY=false; renderCatalog();
+}
+function catModel(){
+  const inMap=new Map(); if(R) R.itemRows.forEach(it=>inMap.set(it.name,it));
+  const cur=curKey(), names=new Set([...CAT.keys(),...inMap.keys()]);
+  const rows=[...names].map(name=>{const c=CAT.get(name), it=inMap.get(name);
+    return{name,first:c?c.firstLabel:'',inFile:!!it,isNew:!!it&&(!c||c.firstDayId===cur),
+      q:it?it['قيد']:0,d:it?it['قيد الدرج']:0,done:it?it['تم']:0,t:it?it.total:0}});
+  const rank=m=>m.isNew?0:m.inFile?1:2;
+  rows.sort((a,b)=>rank(a)-rank(b)||(rank(a)<2?b.t-a.t:0)||a.name.localeCompare(b.name,'ar'));
+  return{rows,nNew:rows.filter(m=>m.isNew).length,nMiss:R?rows.filter(m=>!m.inFile).length:0,nIn:rows.filter(m=>m.inFile).length};
+}
+/* متبقي المخزن = (قيد + مخزون جديد) - الإجمالي. عمودا "قيد + مخزون جديد" و"متبقي" يبقيان فارغين حتى يُكتب مخزون للصنف. */
+function catCalc(m){
+  if(!R||STOCK[m.name]==null) return{sum:'',rem:'',neg:false,on:false,sumN:0,remN:0};
+  const sum=m.q+stockOf(m.name), rem=sum-m.t;
+  return{sum:fmt(sum),rem:fmt(rem),neg:rem<0,on:true,sumN:sum,remN:rem};
+}
+function updateCatCount(){$('catN').textContent=fmt(catModel().rows.length)}
+function catFootHtml(){
+  if(!R) return '';
+  let q=0,d=0,x=0,t=0,s=0,sm=0,rm=0;
+  for(const m of CATROWS){
+    if(m.inFile){q+=m.q;d+=m.d;x+=m.done;t+=m.t}
+    const c=catCalc(m); if(c.on){s+=stockOf(m.name);sm+=c.sumN;rm+=c.remN}
+  }
+  return `<tr><td class="total">المجموع</td><td class="num total">${fmt(q)}</td><td class="num total">${fmt(d)}</td><td class="num total">${fmt(x)}</td><td class="num total">${fmt(t)}</td><td class="num total">${fmt(s)}</td><td class="num total">${fmt(sm)}</td><td class="num total${rm<0?' neg':''}" dir="ltr">${fmt(rm)}</td></tr>`;
+}
+function renderCatalog(){
+  updateCatCount();
+  if(VIEW!=='cat') return;
+  const M=catModel(); CATROWS=M.rows;
+  $('cday').textContent=R?('اليومية: '+(CURLABEL||'—')+' · الملف: '+FILENAME):'لم يُفتح ملف بعد. ارفع ملفًا أو افتح يومية محفوظة من تبويب التحليل لتظهر الأرقام وتُلوَّن الأصناف.';
+  const stats=[['كل المنتجات',M.rows.length]];
+  if(R) stats.push(['موجودة في الملف',M.nIn],['جديدة (أصفر)',M.nNew],['غير موجودة في الملف (أحمر)',M.nMiss]);
+  $('cstats').innerHTML=stats.map(s=>`<div class="stat"><small>${s[0]}</small><b>${fmt(s[1])}</b></div>`).join('');
+  const nq=norm($('cq').value.trim());
+  const rows=M.rows.filter(m=>!nq||norm(m.name).includes(nq));
+  const head=['الصنف','قيد','قيد الدرج','تم','الإجمالي','مخزون جديد','قيد + مخزون جديد','متبقي المخزن'];
+  const body=rows.map(m=>{
+    const c=catCalc(m), sv=STOCK[m.name];
+    const cl=!R?'':m.isNew?'new':m.inFile?'':'miss';
+    const bd=!R?'':m.isNew?'<span class="bdg">جديد</span>':m.inFile?'':'<span class="bdg">غير موجود في الملف</span>';
+    const num=v=>m.inFile?fmt(v):'';
+    return `<tr class="${cl}"><td title="${esc(m.first?'أول ظهور: '+m.first:'')}">${esc(m.name)}${bd}</td>`+
+      `<td class="num">${num(m.q)}</td><td class="num">${num(m.d)}</td><td class="num">${num(m.done)}</td><td class="num total">${num(m.t)}</td>`+
+      `<td class="num"><input class="stk" type="number" min="0" step="1" inputmode="numeric" data-name="${esc(m.name)}" value="${sv==null?'':esc(sv)}" aria-label="مخزون جديد: ${esc(m.name)}"${R?'':' disabled'}></td>`+
+      `<td class="num total csum">${c.sum}</td><td class="num total crem${c.neg?' neg':''}" dir="ltr">${c.rem}</td></tr>`;
+  }).join('');
+  $('catTbl').innerHTML='<thead><tr>'+head.map((h,i)=>`<th class="${i?'num':''}">${esc(h)}</th>`).join('')+'</tr></thead><tbody>'+body+'</tbody><tfoot>'+catFootHtml()+'</tfoot>';
+  $('cnote').textContent=CATBUSY?'جاري بناء قائمة المنتجات من اليوميات المحفوظة...':
+    M.rows.length?'الأصناف الجديدة (أصفر) في الأعلى، ثم الموجودة في الملف بالأكثر مبيعًا، وغير الموجودة (أحمر) في الأسفل. اكتب المخزون الجديد للصنف فيظهر "قيد + مخزون جديد" و"متبقي المخزن" = (قيد + مخزون جديد) − الإجمالي. المخزون يُحفظ مع اليومية المفتوحة.':
+    'لا توجد منتجات بعد. تُضاف الأصناف هنا تلقائيًا عند حفظ أي يومية.';
+}
+$('catTbl').addEventListener('input',e=>{
+  const t=e.target; if(!t.classList||!t.classList.contains('stk')) return;
+  const name=t.dataset.name; setStock(name,t.value);
+  const m=CATROWS.find(r=>r.name===name), tr=t.closest('tr'); if(!m||!tr) return;
+  const c=catCalc(m); tr.querySelector('.csum').textContent=c.sum;
+  const rem=tr.querySelector('.crem'); rem.textContent=c.rem; rem.classList.toggle('neg',c.neg);
+  $('catTbl').tFoot.innerHTML=catFootHtml();
+});
+function setView(v){
+  VIEW=v; document.querySelector('.wrap').dataset.view=v;
+  $('views').querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===v)));
+  if(v==='cat') renderCatalog(); else if(R&&!$('out').hidden) table();
+}
+$('views').querySelectorAll('.tab').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+$('cq').oninput=renderCatalog;
 
 /* التصدير (الأرقام صيغ SUMIFS على ورقة التفكيك) */
 $('export').onclick=()=>{
