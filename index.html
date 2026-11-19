@@ -51,7 +51,7 @@ tr:hover td{background:var(--soft)}
 .err{background:var(--badbg);color:var(--bad);border-radius:8px;padding:10px 14px;font-weight:600}
 .iconbtn{--c:#64748b;width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.05);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:var(--c);transition:border-color .2s,background .2s}
 .iconbtn svg{width:20px;height:20px}
-.iconbtn:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) var(--tint),var(--surface))}
+.iconbtn:hover{border-color:var(--c);background:var(--surface-2,var(--surface));background:color-mix(in srgb,var(--c) var(--tint),var(--surface))}
 .iconbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 header.top{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap}
 .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -120,8 +120,8 @@ tr.new:hover td,tr.miss:hover td{filter:brightness(.96)}
 /* بطاقات الأرقام بنفس تصميم بطاقات نظام إدارة الشحنات: أيقونة ملونة في مربع ناعم على الجانب */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.45rem}
 .stat{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:64px;padding:.4rem .65rem .4rem 52px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);text-align:right;transition:border-color .2s,background .2s;overflow:hidden}
-.stat:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 5%,var(--surface))}
-.stat .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--c);background:color-mix(in srgb,var(--c) var(--tint),transparent)}
+.stat:hover{border-color:var(--c);background:var(--surface-2,var(--surface));background:color-mix(in srgb,var(--c) 5%,var(--surface))}
+.stat .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--c);background:rgba(128,128,128,.16);background:color-mix(in srgb,var(--c) var(--tint),transparent)}
 .stat .ic svg{width:18px;height:18px}
 .stat small{display:block;font-size:.72rem;font-weight:700;color:var(--muted);line-height:1.3}
 .stat b{display:block;font-size:1.2rem;font-weight:800;line-height:1.25;font-variant-numeric:tabular-nums;color:var(--ink)}

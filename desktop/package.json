@@ -1,0 +1,9 @@
+{
+  "name": "sales-analyzer",
+  "productName": "محلل المبيعات",
+  "version": "1.0.0",
+  "description": "أداة محلل مبيعات الأصناف",
+  "main": "main.js",
+  "author": "Aziz",
+  "license": "UNLICENSED"
+}
